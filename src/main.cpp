@@ -2,7 +2,6 @@
 #include <ESP8266WiFi.h>
 #include <WebSocketsServer.h>
 
-
 // ==================== 配置 ====================
 const char *ssid = "ESP-01S";
 const char *password = "12345678";
@@ -12,8 +11,6 @@ WebSocketsServer webSocket(81);
 
 bool waitingResponse = false;
 String serialInBuffer = "";
-
-// ==================== HTML 页面 ====================
 const char index_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE html>
 <html lang="zh-CN" data-theme="light">
@@ -297,6 +294,8 @@ const char index_html[] PROGMEM = R"rawliteral(
             cursor: grab;
             user-select: none;
         }
+
+        .header-right { display:flex; gap:12px; align-items:center; }
 
         .window-header:active {
             cursor: grabbing;
@@ -661,6 +660,232 @@ const char index_html[] PROGMEM = R"rawliteral(
             gap: 12px;
         }
 
+        /* 示波器组件样式 */
+        .scope-window {
+            min-width: 420px;
+            min-height: 280px;
+            background-color: var(--surface-color);
+        }
+
+        .scope-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 12px;
+            overflow: hidden;
+        }
+
+        .scope-plot {
+            position: relative;
+            flex: 1;
+            min-height: 180px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+            background: #0f172a;
+            cursor: grab;
+            user-select: none;
+            touch-action: none;
+        }
+
+        .scope-plot:active {
+            cursor: grabbing;
+        }
+
+        .scope-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .scope-hover-tooltip {
+            position: absolute;
+            left: 0;
+            top: 0;
+            transform: translate(-9999px, -9999px);
+            pointer-events: none;
+            z-index: 6;
+            background: rgba(15,23,42,0.96);
+            color: #e2e8f0;
+            border: 1px solid rgba(148,163,184,0.35);
+            border-radius: 8px;
+            padding: 6px 8px;
+            font-size: 12px;
+            line-height: 1.35;
+            white-space: nowrap;
+            box-shadow: 0 8px 18px rgba(0,0,0,0.25);
+            opacity: 0;
+            transition: opacity 0.08s ease;
+        }
+
+        .scope-hover-tooltip.active {
+            opacity: 1;
+        }
+
+        .scope-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .scope-history-slider {
+            width: 100%;
+            accent-color: var(--primary-color);
+        }
+
+        /* Custom slider appearance: show a filled segment representing visible window */
+        .scope-history-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 7px;
+            border-radius: 6px;
+            background: rgba(148,163,184,0.22);
+            border: 1px solid rgba(148,163,184,0.28);
+            outline: none;
+        }
+        .scope-history-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 999px;
+            background: transparent;
+            border: none;
+            margin-top: -5px;
+            box-shadow: none;
+        }
+        .scope-history-slider::-webkit-slider-runnable-track {
+            height: 7px;
+            border-radius: 6px;
+            background: transparent;
+        }
+        .scope-history-slider::-moz-range-track {
+            height: 7px;
+            border-radius: 6px;
+            background: transparent;
+            border: none;
+        }
+        .scope-history-slider::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 999px;
+            background: transparent;
+            border: none;
+            box-shadow: none;
+        }
+
+        .scope-auto-btn {
+            padding: 4px 12px;
+            font-size: 0.8rem;
+            border-radius: 999px;
+            flex-shrink: 0;
+        }
+
+        .scope-yscale-btn {
+            padding: 4px 8px;
+            font-size: 0.9rem;
+            border-radius: 6px;
+            flex-shrink: 0;
+            min-width: 34px;
+        }
+
+        .scope-yscale-auto {
+            padding: 4px 8px;
+            font-size: 0.8rem;
+            border-radius: 6px;
+            flex-shrink: 0;
+            min-width: 34px;
+        }
+
+        .scope-title-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            position: relative;
+            min-width: 0;
+        }
+
+        .scope-title-help {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            border-radius: 999px;
+            border: 1px solid rgba(100,116,139,0.35);
+            color: var(--text-muted);
+            font-size: 12px;
+            line-height: 1;
+            cursor: default;
+            background: rgba(255,255,255,0.04);
+            flex-shrink: 0;
+        }
+
+        .scope-title-help-panel {
+            position: absolute;
+            left: 0;
+            top: calc(100% + 10px);
+            width: min(420px, 70vw);
+            padding: 12px 14px;
+            border-radius: 10px;
+            border: 1px solid rgba(148,163,184,0.28);
+            background: rgba(15,23,42,0.98);
+            color: #e2e8f0;
+            box-shadow: 0 18px 30px rgba(0,0,0,0.28);
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-4px);
+            transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s ease;
+            pointer-events: none;
+            z-index: 40;
+        }
+
+        .scope-title-help:hover .scope-title-help-panel,
+        .scope-title-help:focus-within .scope-title-help-panel {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+
+        .scope-title-help-panel h4 {
+            margin-bottom: 8px;
+            font-size: 13px;
+            color: #f8fafc;
+        }
+
+        .scope-title-help-panel ul {
+            padding-left: 18px;
+            line-height: 1.55;
+            font-size: 12px;
+            color: #cbd5e1;
+        }
+
+        .scope-title-help-panel li + li {
+            margin-top: 6px;
+        }
+
+        /* Unified control button style inside scope header */
+        .scope-ctrl-btn {
+            padding: 6px 10px;
+            font-size: 0.85rem;
+            border-radius: 8px;
+            background-color: rgba(255,255,255,0.03);
+            color: var(--text-main);
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+        }
+        .scope-ctrl-btn:hover { background-color: rgba(255,255,255,0.06); border-color: rgba(148,163,184,0.12); }
+
+        .scope-clear-btn { background-color: rgba(239,68,68,0.06); color: var(--danger-color); }
+        .scope-clear-btn:hover { background-color: rgba(239,68,68,0.12); }
+
+        .scope-meta { display:flex; align-items:center; gap:12px; color:var(--text-muted); font-size:0.9rem; }
+        .scope-stats { color: var(--text-main); font-weight:600; font-size:0.9rem; }
+
     </style>
 </head>
 <body>
@@ -728,6 +953,10 @@ const char index_html[] PROGMEM = R"rawliteral(
             </div>
             <div class="component-item" id="addButtonBtn">
                 <span>自定义按钮</span>
+                <span class="status" style="font-size:0.8rem; color:var(--primary-color);">+ 添加</span>
+            </div>
+            <div class="component-item" id="addScopeBtn">
+                <span>示波器</span>
                 <span class="status" style="font-size:0.8rem; color:var(--primary-color);">+ 添加</span>
             </div>
 
@@ -875,10 +1104,6 @@ const char index_html[] PROGMEM = R"rawliteral(
             </div>
             <div class="modal-content">
                 <div class="setting-group">
-                    <label for="btnWindowTitle">组件标题</label>
-                    <input type="text" id="btnWindowTitle" value="自定义按钮">
-                </div>
-                <div class="setting-group">
                     <label for="btnDisplayTxt">按钮显示内容</label>
                     <input type="text" id="btnDisplayTxt" value="点击发送">
                 </div>
@@ -940,6 +1165,49 @@ const char index_html[] PROGMEM = R"rawliteral(
         </div>
     </div>
 
+    <!-- 示波器组件设置弹窗 -->
+    <div id="scopeSettingsModal" class="modal-overlay">
+        <div class="modal" style="width: 520px;">
+            <div class="modal-header">
+                <h3>示波器 设置</h3>
+                <button id="btnCloseScopeModal" class="settings-btn" style="padding: 4px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <div class="modal-content">
+                <div class="cfg-grid">
+                    <div class="setting-group">
+                        <label for="scopePosX">X 坐标 (px)</label>
+                        <input type="number" id="scopePosX" placeholder="例：120">
+                    </div>
+                    <div class="setting-group">
+                        <label for="scopePosY">Y 坐标 (px)</label>
+                        <input type="number" id="scopePosY" placeholder="例：120">
+                    </div>
+                    <div class="setting-group">
+                        <label for="scopeWidth">宽度 (px)</label>
+                        <input type="number" id="scopeWidth" placeholder="例：760">
+                    </div>
+                    <div class="setting-group">
+                        <label for="scopeHeight">高度 (px)</label>
+                        <input type="number" id="scopeHeight" placeholder="例：360">
+                    </div>
+                </div>
+                <div class="setting-group">
+                    <label for="scopeSamplePoints">保存的采样点数量</label>
+                    <input type="number" id="scopeSamplePoints" min="100" max="5000" value="1000">
+                </div>
+                <div class="setting-group checkbox-group" style="margin-top: 8px;">
+                    <input type="checkbox" id="scopeShowSampleMarkers" checked>
+                    <label for="scopeShowSampleMarkers">样本点可视化（显示圆点）</label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="btnSaveScopeSettings" style="width: 100%;">保存</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const wsUrlInput = document.getElementById('wsUrl');
         const btnConnect = document.getElementById('btnConnect');
@@ -980,6 +1248,19 @@ const char index_html[] PROGMEM = R"rawliteral(
         sidebarOverlay = document.getElementById('sidebarOverlay');
         const workspace = document.querySelector('.workspace');
 
+        // Bring a window to the front by assigning it a z-index larger than any
+        // existing `.floating-window` elements. New components should call this
+        // after being appended to the workspace so they appear on top by default.
+        function bringToFront(win) {
+            if (!win) return;
+            const all = Array.from(document.querySelectorAll('.floating-window'));
+            let maxZ = 0;
+            all.forEach(el => {
+                const z = parseInt(window.getComputedStyle(el).zIndex, 10);
+                if (!isNaN(z) && z > maxZ) maxZ = z;
+            });
+            win.style.zIndex = String(maxZ + 1);
+        }
         function toggleSidebar() {
             sidebar.classList.toggle('active');
             sidebarOverlay.classList.toggle('active');
@@ -997,6 +1278,8 @@ const char index_html[] PROGMEM = R"rawliteral(
         addTerminalBtn.addEventListener('click', () => {
             if (addTerminalBtn.classList.contains('disabled')) return;
             document.getElementById('terminalWindow').style.display = 'flex';
+            // Ensure terminal window is on top when shown
+            bringToFront(terminalWindow);
             addTerminalBtn.classList.add('disabled');
             addTerminalBtn.querySelector('.status').textContent = '已添加';
             addTerminalBtn.querySelector('.status').style.color = 'var(--success-color)';
@@ -1297,6 +1580,15 @@ const char index_html[] PROGMEM = R"rawliteral(
                 addTerminalBtn.querySelector('.status').textContent = '未添加';
                 addTerminalBtn.querySelector('.status').style.color = 'var(--text-muted)';
             } else {
+                if (scopeManager.instance && scopeManager.instance.win === currentContextMenuWindow) {
+                    if (scopeManager.instance._resizeObserver) scopeManager.instance._resizeObserver.disconnect();
+                    if (scopeManager.instance._saveTimer) clearTimeout(scopeManager.instance._saveTimer);
+                    if (scopeManager.instance.win && scopeManager.instance.win.parentNode) {
+                        scopeManager.instance.win.parentNode.removeChild(scopeManager.instance.win);
+                    }
+                    scopeManager.instance = null;
+                    updateScopeButtonState(false);
+                } else {
                 let idx = paramManager.instances.findIndex(inst => inst.win === currentContextMenuWindow);
                 if (idx !== -1) {
                     workspaceEl.removeChild(currentContextMenuWindow);
@@ -1311,6 +1603,7 @@ const char index_html[] PROGMEM = R"rawliteral(
                         buttonManager.instances.splice(btnIdx, 1);
                     }
                 }
+                }
             }
             saveLayoutToLocal();
         });
@@ -1319,10 +1612,13 @@ const char index_html[] PROGMEM = R"rawliteral(
         const modalOverlay = document.getElementById('componentSettingsModal');
         const paramModalOverlay = document.getElementById('paramSettingsModal');
         const buttonSettingsModal = document.getElementById('buttonSettingsModal');
+        const scopeSettingsModal = document.getElementById('scopeSettingsModal');
         const btnCloseModal = document.getElementById('btnCloseModal');
         const btnCloseParamModal = document.getElementById('btnCloseParamModal');
         const btnCloseButtonModal = document.getElementById('btnCloseButtonModal');
+        const btnCloseScopeModal = document.getElementById('btnCloseScopeModal');
         const btnSaveComponentSettings = document.getElementById('btnSaveComponentSettings');
+        const btnSaveScopeSettings = document.getElementById('btnSaveScopeSettings');
         const modalAutoScroll = document.getElementById('modalAutoScroll');
         const modalMaxLines = document.getElementById('maxLines');
         const modalDisplayMode = document.getElementById('displayMode');
@@ -1339,6 +1635,11 @@ const char index_html[] PROGMEM = R"rawliteral(
                 
                 modalOverlay.classList.add('active');
             } else {
+                if (scopeManager.instance && scopeManager.instance.win === currentContextMenuWindow) {
+                    currentEditingScopeInst = scopeManager.instance;
+                    renderScopeSettingsModal();
+                    scopeSettingsModal.classList.add('active');
+                } else {
                 let idx = paramManager.instances.findIndex(inst => inst.win === currentContextMenuWindow);
                 if (idx !== -1) {
                     currentEditingInst = paramManager.instances[idx];
@@ -1352,15 +1653,18 @@ const char index_html[] PROGMEM = R"rawliteral(
                         buttonSettingsModal.classList.add('active');
                     }
                 }
+                }
             }
         });
 
         const closeModal = () => modalOverlay.classList.remove('active');
         const closeParamModal = () => paramModalOverlay.classList.remove('active');
         const closeButtonModal = () => buttonSettingsModal.classList.remove('active');
+        const closeScopeModal = () => scopeSettingsModal.classList.remove('active');
         btnCloseModal.addEventListener('click', closeModal);
         btnCloseParamModal.addEventListener('click', closeParamModal);
         btnCloseButtonModal.addEventListener('click', closeButtonModal);
+        btnCloseScopeModal.addEventListener('click', closeScopeModal);
         
         modalOverlay.addEventListener('click', (e) => {
             if (e.target === modalOverlay) closeModal();
@@ -1370,6 +1674,9 @@ const char index_html[] PROGMEM = R"rawliteral(
         });
         buttonSettingsModal.addEventListener('click', (e) => {
             if (e.target === buttonSettingsModal) closeButtonModal();
+        });
+        scopeSettingsModal.addEventListener('click', (e) => {
+            if (e.target === scopeSettingsModal) closeScopeModal();
         });
 
         btnSaveComponentSettings.addEventListener('click', () => {
@@ -1423,7 +1730,9 @@ const char index_html[] PROGMEM = R"rawliteral(
             `;
             
             workspaceEl.appendChild(win);
-            
+            workspaceEl.appendChild(win);
+            // New window should appear on top by default
+            bringToFront(win);
             const header = win.querySelector('.window-header');
             initDraggable(header, win);
             initContextMenu(win);
@@ -1672,7 +1981,9 @@ const char index_html[] PROGMEM = R"rawliteral(
             `;
             
             workspaceEl.appendChild(win);
-            
+            workspaceEl.appendChild(win);
+            // New button window should be brought to front
+            bringToFront(win);
             initContextMenu(win);
             
             const btnEl = win.querySelector('.custom-cmd-btn');
@@ -1698,6 +2009,25 @@ const char index_html[] PROGMEM = R"rawliteral(
         const addButtonBtn = document.getElementById('addButtonBtn');
         addButtonBtn.addEventListener('click', () => {
             createButtonWindow();
+        });
+
+        const addScopeBtn = document.getElementById('addScopeBtn');
+
+        function updateScopeButtonState(active) {
+            if (!addScopeBtn) return;
+            if (active) {
+                addScopeBtn.classList.add('disabled');
+                addScopeBtn.querySelector('.status').textContent = '已添加';
+                addScopeBtn.querySelector('.status').style.color = 'var(--success-color)';
+            } else {
+                addScopeBtn.classList.remove('disabled');
+                addScopeBtn.querySelector('.status').textContent = '+ 添加';
+                addScopeBtn.querySelector('.status').style.color = 'var(--primary-color)';
+            }
+        }
+
+        addScopeBtn.addEventListener('click', () => {
+            createScopeWindow();
         });
 
         function renderButtonUI(inst) {
@@ -1763,6 +2093,792 @@ const char index_html[] PROGMEM = R"rawliteral(
             });
         }
 
+        // --- Scope Component Logic ---
+        let scopeManager = {
+            instance: null
+        };
+        let currentEditingScopeInst = null;
+        let scopeSerialBuffer = '';
+
+        function scheduleScopeSave(inst) {
+            if (inst._saveTimer) clearTimeout(inst._saveTimer);
+            inst._saveTimer = setTimeout(() => {
+                saveLayoutToLocal();
+            }, 120);
+        }
+
+        function buildScopeWindowMarkup() {
+            return `
+                <div class="window-header">
+                    <div class="scope-title-group">
+                        <span class="window-title">示波器</span>
+                        <div class="scope-title-help" tabindex="0" aria-label="示波器使用帮助">
+                            i
+                            <div class="scope-title-help-panel" role="tooltip">
+                                <h4>示波器使用方法</h4>
+                                <ul>
+                                    <li>在波形区域滚轮可缩放时间窗口；按住 Alt 再滚轮可调纵轴缩放。</li>
+                                    <li>按住波形区域左右拖动，可查看历史数据；底部滑条也可直接拖动。</li>
+                                    <li>点击“auto”可回到最新波形；点击“清空”可清除当前缓存。</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="header-right">
+                        <div class="scope-meta">
+                            <span class="scope-stats">样本: 0/0  通道: 0  时间尺度: 0 ms</span>
+                        </div>
+                        <div class="window-controls">
+                        <button type="button" class="scope-auto-btn scope-ctrl-btn" title="跳到最新">auto</button>
+                        <button type="button" class="scope-pause-btn scope-ctrl-btn" title="冻结/继续接收">冻结接收</button>
+                        <button type="button" class="scope-yscale-auto scope-ctrl-btn" title="纵轴自动缩放">Y</button>
+                        <button type="button" class="scope-clear-btn scope-ctrl-btn" title="清空波形">清空</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="scope-main">
+                    <div class="scope-plot">
+                        <canvas class="scope-canvas"></canvas>
+                        <div class="scope-hover-tooltip"></div>
+                    </div>
+                    <div class="scope-controls">
+                        <input type="range" class="scope-history-slider" min="0" max="0" value="0">
+                    </div>
+                </div>
+            `;
+        }
+
+        function updateScopeButtonState(active) {
+            if (!addScopeBtn) return;
+            if (active) {
+                addScopeBtn.classList.add('disabled');
+                addScopeBtn.querySelector('.status').textContent = '已添加';
+                addScopeBtn.querySelector('.status').style.color = 'var(--success-color)';
+            } else {
+                addScopeBtn.classList.remove('disabled');
+                addScopeBtn.querySelector('.status').textContent = '+ 添加';
+                addScopeBtn.querySelector('.status').style.color = 'var(--primary-color)';
+            }
+        }
+
+        function createScopeWindow(config = {}) {
+            if (scopeManager.instance) return scopeManager.instance;
+
+            const winId = 'scope_win_' + Date.now();
+            const win = document.createElement('div');
+            win.className = 'floating-window scope-window';
+            win.id = winId;
+            win.style.left = config.left || '120px';
+            win.style.top = config.top || '120px';
+            win.style.width = config.width || '780px';
+            win.style.height = config.height || '380px';
+            win.style.zIndex = '90';
+            win.style.minWidth = '420px';
+            win.style.minHeight = '280px';
+            win.dataset.locked = config.locked ? 'true' : 'false';
+            win.style.resize = win.dataset.locked === 'true' ? 'none' : 'both';
+
+            win.innerHTML = buildScopeWindowMarkup();
+
+            workspaceEl.appendChild(win);
+            workspaceEl.appendChild(win);
+            // Ensure new scope window is on top
+            bringToFront(win);
+            const header = win.querySelector('.window-header');
+            initDraggable(header, win);
+            initContextMenu(win);
+
+            const plotEl = win.querySelector('.scope-plot');
+            const canvas = win.querySelector('.scope-canvas');
+            const hoverTooltipEl = win.querySelector('.scope-hover-tooltip');
+            const historySlider = win.querySelector('.scope-history-slider');
+            const autoBtn = win.querySelector('.scope-auto-btn');
+            const pauseBtn = win.querySelector('.scope-pause-btn');
+            const yAutoBtn = win.querySelector('.scope-yscale-auto');
+            const clearBtn = win.querySelector('.scope-clear-btn');
+            const scopeStatsEl = win.querySelector('.scope-stats');
+
+            const samplePoints = Math.max(100, Math.min(5000, parseInt(config.samplePoints, 10) || 1000));
+            const samples = Array.isArray(config.samples) ? config.samples
+                .map(item => Array.isArray(item) ? item : null)
+                .filter(Boolean)
+                .slice(-samplePoints) : [];
+            const sampleTimes = Array.isArray(config.sampleTimes) ? config.sampleTimes.slice(-samplePoints) : [];
+
+            const newInst = {
+                win,
+                title: '示波器',
+                plotEl,
+                canvas,
+                hoverTooltipEl,
+                historySlider,
+                autoBtn,
+                pauseBtn,
+                yAutoBtn,
+                clearBtn,
+                scopeStatsEl,
+                samplePoints,
+                samples,
+                sampleTimes,
+                samplesPerPixel: typeof config.samplesPerPixel === 'number' ? config.samplesPerPixel : 0.32,
+                timeScaleMsPerSample: typeof config.timeScaleMsPerSample === 'number' ? config.timeScaleMsPerSample : 1,
+                // user-controlled time window (ms). Only changed via UI, not automatically.
+                timeWindowMs: typeof config.timeWindowMs === 'number' ? config.timeWindowMs : 10000,
+                showSampleMarkers: typeof config.showSampleMarkers === 'boolean' ? config.showSampleMarkers : true,
+                viewTimeOffsetMs: typeof config.viewTimeOffsetMs === 'number' ? config.viewTimeOffsetMs : 0,
+                yScale: typeof config.yScale === 'number' ? config.yScale : 1,
+                yOffsetUnits: typeof config.yOffsetUnits === 'number' ? config.yOffsetUnits : 0,
+                viewOffset: typeof config.viewOffset === 'number' ? config.viewOffset : 0,
+                paused: !!config.paused,
+                baseYScalePx: 30,
+                _renderPending: false,
+                _saveTimer: null,
+                _draggingY: false,
+                _dragStartY: 0,
+                _dragStartOffset: 0,
+                _resizeObserver: null,
+                _hoverPoints: []
+            };
+
+            scopeManager.instance = newInst;
+            updateScopeButtonState(true);
+            bindScopeInteractions(newInst);
+            renderScopeUI(newInst);
+            scheduleScopeSave(newInst);
+            return newInst;
+        }
+
+        function bindScopeInteractions(inst) {
+            const hideScopeTooltip = () => {
+                if (!inst.hoverTooltipEl) return;
+                inst.hoverTooltipEl.classList.remove('active');
+                inst.hoverTooltipEl.style.transform = 'translate(-9999px, -9999px)';
+            };
+
+            if (inst._resizeObserver) inst._resizeObserver.disconnect();
+            inst._resizeObserver = new ResizeObserver(() => {
+                renderScopeUI(inst);
+            });
+            inst._resizeObserver.observe(inst.plotEl);
+
+            inst.historySlider.addEventListener('input', (e) => {
+                const range = getScopeVisibleRange(inst);
+                const visibleCount = Math.max(0, range.end - range.start);
+                const totalSamples = range.totalSamples;
+                const maxOffset = Math.max(0, totalSamples - visibleCount);
+
+                // display range: 0=oldest(left), max=latest(right)
+                const displayVal = Math.max(0, Math.min(maxOffset, Number(e.target.value) || 0));
+                inst.viewOffset = Math.max(0, maxOffset - displayVal);
+                if (totalSamples > 0 && Array.isArray(inst.sampleTimes) && inst.sampleTimes.length >= totalSamples) {
+                    const latestTs = Number(inst.sampleTimes[totalSamples - 1]);
+                    const endExclusive = Math.max(0, totalSamples - inst.viewOffset);
+                    const endIdx = Math.max(0, Math.min(totalSamples - 1, endExclusive - 1));
+                    const targetTs = endExclusive > 0 ? Number(inst.sampleTimes[endIdx]) : Number(inst.sampleTimes[0]);
+                    if (Number.isFinite(latestTs) && Number.isFinite(targetTs)) {
+                        inst.viewTimeOffsetMs = Math.max(0, latestTs - targetTs);
+                    }
+                }
+                updateScopeHistorySlider(inst, totalSamples, visibleCount, maxOffset);
+                scheduleScopeRender(inst);
+                scheduleScopeSave(inst);
+            });
+
+            inst.autoBtn.addEventListener('click', () => {
+                inst.viewOffset = 0;
+                inst.viewTimeOffsetMs = 0;
+                fitScopeToVisibleData(inst);
+                renderScopeUI(inst);
+                saveLayoutToLocal();
+            });
+
+            // Y-axis auto scale only; manual +/- buttons were removed from the UI.
+            if (inst.yAutoBtn) {
+                inst.yAutoBtn.addEventListener('click', () => {
+                    fitScopeToVisibleData(inst);
+                    renderScopeUI(inst);
+                    scheduleScopeSave(inst);
+                });
+            }
+
+            if (inst.clearBtn) {
+                inst.clearBtn.addEventListener('click', () => {
+                    inst.samples = [];
+                    inst.viewOffset = 0;
+                    inst.viewTimeOffsetMs = 0;
+                    scopeSerialBuffer = '';
+                    inst._lastSampleTs = null;
+                    inst.sampleTimes = [];
+                    renderScopeUI(inst);
+                    scheduleScopeSave(inst);
+                });
+            }
+
+            inst.pauseBtn.addEventListener('click', () => {
+                inst.paused = !inst.paused;
+                if (inst.paused) scopeSerialBuffer = '';
+                renderScopeUI(inst);
+                scheduleScopeSave(inst);
+            });
+
+            inst.plotEl.addEventListener('wheel', (e) => {
+                if (!scopeManager.instance) return;
+                e.preventDefault();
+                if (e.altKey) {
+                    const factor = e.deltaY < 0 ? 1.12 : 0.89;
+                    inst.yScale = Math.max(0.2, Math.min(80, inst.yScale * factor));
+                } else {
+                    const factor = e.deltaY < 0 ? 0.88 : 1.12;
+                    inst.timeWindowMs = Math.max(10, Math.min(6000000, Math.round(inst.timeWindowMs * factor)));
+                }
+                renderScopeUI(inst);
+                scheduleScopeSave(inst);
+            }, { passive: false });
+
+            inst.plotEl.addEventListener('mousemove', (e) => {
+                const points = Array.isArray(inst._hoverPoints) ? inst._hoverPoints : [];
+                if (!points.length || !inst.hoverTooltipEl) {
+                    hideScopeTooltip();
+                    return;
+                }
+
+                const rect = inst.plotEl.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                let best = null;
+                let bestD2 = Infinity;
+                for (const p of points) {
+                    const dx = x - p.x;
+                    const dy = y - p.y;
+                    const d2 = dx * dx + dy * dy;
+                    if (d2 < bestD2) {
+                        bestD2 = d2;
+                        best = p;
+                    }
+                }
+
+                if (!best || bestD2 > 12 * 12) {
+                    hideScopeTooltip();
+                    return;
+                }
+
+                const tip = inst.hoverTooltipEl;
+                tip.innerHTML = `CH${best.channel + 1}: ${best.value.toFixed(3)}`;
+
+                const tipW = Math.max(80, tip.offsetWidth || 120);
+                const tipH = Math.max(24, tip.offsetHeight || 42);
+                const tx = Math.min(Math.max(6, best.x + 10), Math.max(6, rect.width - tipW - 6));
+                const ty = Math.min(Math.max(6, best.y - tipH - 10), Math.max(6, rect.height - tipH - 6));
+
+                tip.style.transform = `translate(${tx}px, ${ty}px)`;
+                tip.classList.add('active');
+            });
+
+            inst.plotEl.addEventListener('mouseleave', hideScopeTooltip);
+
+            inst.plotEl.addEventListener('mousedown', (e) => {
+                if (e.button !== 0) return;
+                if (e.target.closest('.window-header')) return;
+                hideScopeTooltip();
+
+                inst._panMode = null;
+                inst._panStartX = e.clientX;
+                inst._panStartY = e.clientY;
+                inst._panStartYOffset = inst.yOffsetUnits;
+
+                const range = getScopeVisibleRange(inst);
+                const visibleCount = Math.max(0, range.end - range.start);
+                const totalSamples = range.totalSamples;
+                const maxOffset = Math.max(0, totalSamples - visibleCount);
+
+                inst._panStartOffset = Math.max(0, Math.min(maxOffset, inst.viewOffset || 0));
+                inst._panStartTimeOffset = Math.max(0, range.viewTimeOffsetMs || 0);
+                inst._panStartAxisDuration = Math.max(1, range.axisDurationMs || inst.timeWindowMs || 1);
+                inst._panMaxTimeOffset = Math.max(0, range.maxTimeOffsetMs || 0);
+
+                document.addEventListener('mousemove', onScopePanMove);
+                document.addEventListener('mouseup', onScopePanEnd);
+            });
+
+            function onScopePanMove(e) {
+                const dx = e.clientX - inst._panStartX;
+                const dy = e.clientY - inst._panStartY;
+
+                if (!inst._panMode) {
+                    if (Math.abs(dx) > 6 || Math.abs(dy) > 6) {
+                        inst._panMode = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+                    } else {
+                        return;
+                    }
+                }
+
+                if (inst._panMode === 'y') {
+                    const pxPerUnit = Math.max(1, inst.baseYScalePx * inst.yScale);
+                    const deltaUnits = (e.clientY - inst._panStartY) / pxPerUnit;
+                    inst.yOffsetUnits = inst._panStartYOffset + deltaUnits;
+                    scheduleScopeRender(inst);
+                    scheduleScopeSave(inst);
+                    return;
+                }
+
+                // horizontal pan: map pixels to time offset for smooth movement under irregular sampling intervals
+                const range = getScopeVisibleRange(inst);
+                const totalSamples = range.totalSamples;
+                const visibleCount = Math.max(0, range.end - range.start);
+                const maxOffset = Math.max(0, totalSamples - visibleCount);
+                if (maxOffset <= 0) return;
+
+                const plotW = Math.max(1, inst.plotEl.clientWidth);
+                const deltaMs = (dx / plotW) * Math.max(1, inst._panStartAxisDuration || range.axisDurationMs || inst.timeWindowMs || 1);
+                const baseTimeOffset = Math.max(0, inst._panStartTimeOffset || 0);
+                const maxTimeOffset = Math.max(0, Number.isFinite(inst._panMaxTimeOffset) ? inst._panMaxTimeOffset : range.maxTimeOffsetMs || 0);
+                inst.viewTimeOffsetMs = Math.max(0, Math.min(maxTimeOffset, baseTimeOffset + deltaMs));
+
+                const syncedRange = getScopeVisibleRange(inst);
+                inst.viewOffset = Math.max(0, Math.min(maxOffset, syncedRange.viewOffsetSamples || 0));
+
+                updateScopeHistorySlider(inst, totalSamples, visibleCount, maxOffset);
+                scheduleScopeRender(inst);
+            }
+
+            function onScopePanEnd() {
+                document.removeEventListener('mousemove', onScopePanMove);
+                document.removeEventListener('mouseup', onScopePanEnd);
+                inst._panMode = null;
+                inst._panStartOffset = null;
+                inst._panStartTimeOffset = null;
+                inst._panStartAxisDuration = null;
+                inst._panMaxTimeOffset = null;
+                saveLayoutToLocal();
+            }
+        }
+
+        function updateScopeHistorySlider(inst, totalSamples, visibleCount, maxOffset) {
+            if (!inst || !inst.historySlider) return;
+
+            const slider = inst.historySlider;
+            const max = Math.max(0, maxOffset || 0);
+            const total = Math.max(0, totalSamples || 0);
+            const visible = Math.max(0, Math.min(total || 0, visibleCount || 0));
+
+            slider.max = String(max);
+            const displayVal = Math.max(0, Math.min(max, max - (inst.viewOffset || 0)));
+            slider.value = String(displayVal);
+            slider.disabled = max <= 0;
+
+            const visibleRatio = total > 0 ? Math.max(0.02, Math.min(1, visible / total)) : 1;
+            const travelRatio = Math.max(0, 1 - visibleRatio);
+            const posRatio = max > 0 ? (displayVal / max) * travelRatio : 0;
+            const start = Math.max(0, Math.min(1, posRatio));
+            const end = Math.max(start, Math.min(1, start + visibleRatio));
+
+            const track = 'rgba(148,163,184,0.22)';
+            const segment = 'rgba(96,165,250,0.95)';
+            const startPct = Math.round(start * 1000) / 10;
+            const endPct = Math.round(end * 1000) / 10;
+            slider.style.background = `linear-gradient(90deg, ${track} 0%, ${track} ${startPct}%, ${segment} ${startPct}%, ${segment} ${endPct}%, ${track} ${endPct}%, ${track} 100%)`;
+        }
+
+        function scheduleScopeRender(inst) {
+            if (inst._renderPending) return;
+            inst._renderPending = true;
+            requestAnimationFrame(() => {
+                inst._renderPending = false;
+                drawScope(inst);
+            });
+        }
+
+        function getScopeVisibleEndIndex(inst) {
+            const total = Array.isArray(inst && inst.samples) ? inst.samples.length : 0;
+            return Math.max(0, total - Math.max(0, inst && inst.viewOffset ? inst.viewOffset : 0));
+        }
+
+        function findScopeEndIndexByTime(sampleTimes, endTs, endLimit) {
+            const times = Array.isArray(sampleTimes) ? sampleTimes : [];
+            let low = 0;
+            let high = Math.max(0, Math.min(times.length, endLimit));
+            while (low < high) {
+                const mid = (low + high) >> 1;
+                const value = Number(times[mid]);
+                if (!Number.isFinite(value) || value <= endTs) low = mid + 1;
+                else high = mid;
+            }
+            return low;
+        }
+
+        function findScopeStartIndexByTime(sampleTimes, endIndex, startTs) {
+            const times = Array.isArray(sampleTimes) ? sampleTimes : [];
+            let low = 0;
+            let high = Math.max(0, Math.min(times.length, endIndex));
+            while (low < high) {
+                const mid = (low + high) >> 1;
+                const value = Number(times[mid]);
+                if (!Number.isFinite(value) || value < startTs) low = mid + 1;
+                else high = mid;
+            }
+            return low;
+        }
+
+        function getScopeVisibleRange(inst) {
+            const totalSamples = Math.max(0, inst && inst.samples ? inst.samples.length : 0);
+            const sampleTimes = Array.isArray(inst && inst.sampleTimes) ? inst.sampleTimes : [];
+            if (totalSamples <= 0) {
+                const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+                const axisDurationMs = Math.max(1, Number(inst && inst.timeWindowMs) || 1000);
+                return {
+                    start: 0,
+                    end: 0,
+                    totalSamples: 0,
+                    axisStartTs: now - axisDurationMs,
+                    axisEndTs: now,
+                    axisDurationMs,
+                    viewTimeOffsetMs: 0,
+                    maxTimeOffsetMs: 0,
+                    viewOffsetSamples: 0
+                };
+            }
+
+            const latestTsRaw = Number(sampleTimes[totalSamples - 1]);
+            const oldestTsRaw = Number(sampleTimes[0]);
+            const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+            const latestTs = Number.isFinite(latestTsRaw) ? latestTsRaw : now;
+            const oldestTs = Number.isFinite(oldestTsRaw) ? oldestTsRaw : (latestTs - Math.max(1, totalSamples - 1));
+            const axisDurationMs = Math.max(1, Number(inst && inst.timeWindowMs) || 1000);
+
+            let viewTimeOffsetMs = Number(inst && inst.viewTimeOffsetMs);
+            if (!Number.isFinite(viewTimeOffsetMs)) {
+                const derivedEnd = Math.max(1, Math.min(totalSamples, getScopeVisibleEndIndex(inst)));
+                const derivedTs = Number(sampleTimes[derivedEnd - 1]);
+                viewTimeOffsetMs = Number.isFinite(derivedTs) ? Math.max(0, latestTs - derivedTs) : 0;
+            }
+
+            const maxTimeOffsetMs = Math.max(0, (latestTs - oldestTs) - axisDurationMs);
+            viewTimeOffsetMs = Math.max(0, Math.min(maxTimeOffsetMs, viewTimeOffsetMs));
+
+            const axisEndTs = latestTs - viewTimeOffsetMs;
+            const axisStartTs = axisEndTs - axisDurationMs;
+
+            const end = findScopeEndIndexByTime(sampleTimes, axisEndTs, totalSamples);
+            const start = findScopeStartIndexByTime(sampleTimes, end, axisStartTs);
+            const viewOffsetSamples = Math.max(0, totalSamples - end);
+
+            return {
+                start: Math.max(0, Math.min(start, end)),
+                end,
+                totalSamples,
+                axisStartTs,
+                axisEndTs,
+                axisDurationMs,
+                viewTimeOffsetMs,
+                maxTimeOffsetMs,
+                viewOffsetSamples
+            };
+        }
+
+        function renderScopeUI(inst) {
+            if (!inst || !inst.canvas) return;
+            const range = getScopeVisibleRange(inst);
+            const visibleCount = Math.max(0, range.end - range.start);
+            const maxOffset = Math.max(0, range.totalSamples - visibleCount);
+            inst.viewTimeOffsetMs = Math.max(0, range.viewTimeOffsetMs || 0);
+            inst.viewOffset = Math.max(0, Math.min(range.viewOffsetSamples || 0, maxOffset));
+            updateScopeHistorySlider(inst, range.totalSamples, visibleCount, maxOffset);
+
+            if (inst.pauseBtn) inst.pauseBtn.textContent = inst.paused ? '继续接收' : '冻结接收';
+            scheduleScopeRender(inst);
+        }
+
+        function fitScopeToVisibleData(inst) {
+            const canvasHeight = Math.max(1, inst.plotEl.clientHeight);
+            const range = getScopeVisibleRange(inst);
+            const data = inst.samples.slice(range.start, range.end);
+            if (!data.length) {
+                inst.yScale = 1;
+                inst.yOffsetUnits = 0;
+                return;
+            }
+
+            let min = Infinity;
+            let max = -Infinity;
+            data.forEach(sample => {
+                sample.forEach(value => {
+                    if (!Number.isFinite(value)) return;
+                    if (value < min) min = value;
+                    if (value > max) max = value;
+                });
+            });
+
+            if (!Number.isFinite(min) || !Number.isFinite(max)) {
+                inst.yScale = 1;
+                inst.yOffsetUnits = 0;
+                return;
+            }
+
+            const span = Math.max(1e-6, max - min);
+            inst.yOffsetUnits = (min + max) / 2;
+            inst.yScale = Math.max(0.2, Math.min(80, (canvasHeight * 0.78) / (span * inst.baseYScalePx)));
+        }
+
+        function drawScope(inst) {
+            if (!inst || !inst.canvas || !inst.plotEl) return;
+
+            const dpr = window.devicePixelRatio || 1;
+            const cssWidth = Math.max(1, inst.plotEl.clientWidth);
+            const cssHeight = Math.max(1, inst.plotEl.clientHeight);
+            const canvasWidth = Math.max(1, Math.floor(cssWidth * dpr));
+            const canvasHeight = Math.max(1, Math.floor(cssHeight * dpr));
+            if (inst.canvas.width !== canvasWidth || inst.canvas.height !== canvasHeight) {
+                inst.canvas.width = canvasWidth;
+                inst.canvas.height = canvasHeight;
+            }
+
+            const ctx = inst.canvas.getContext('2d');
+            if (!ctx) return;
+
+            ctx.save();
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            ctx.clearRect(0, 0, cssWidth, cssHeight);
+
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(0, 0, cssWidth, cssHeight);
+
+            const axisLeft = 56;
+            const axisBottom = 26;
+            const plotLeft = axisLeft;
+            const plotTop = 10;
+            const plotWidth = Math.max(1, cssWidth - axisLeft - 10);
+            const plotHeight = Math.max(1, cssHeight - axisBottom - plotTop);
+
+            ctx.strokeStyle = 'rgba(148, 163, 184, 0.12)';
+            ctx.lineWidth = 1;
+            const gridX = 10;
+            const gridY = 6;
+            for (let i = 1; i < gridX; i++) {
+                const x = plotLeft + Math.round((plotWidth / gridX) * i) + 0.5;
+                ctx.beginPath();
+                ctx.moveTo(x, plotTop);
+                ctx.lineTo(x, plotTop + plotHeight);
+                ctx.stroke();
+            }
+            for (let i = 1; i < gridY; i++) {
+                const y = plotTop + Math.round((plotHeight / gridY) * i) + 0.5;
+                ctx.beginPath();
+                ctx.moveTo(plotLeft, y);
+                ctx.lineTo(plotLeft + plotWidth, y);
+                ctx.stroke();
+            }
+
+            ctx.strokeStyle = 'rgba(255,255,255,0.45)';
+            ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            ctx.moveTo(plotLeft + 0.5, plotTop);
+            ctx.lineTo(plotLeft + 0.5, plotTop + plotHeight);
+            ctx.moveTo(plotLeft, plotTop + plotHeight + 0.5);
+            ctx.lineTo(plotLeft + plotWidth, plotTop + plotHeight + 0.5);
+            ctx.stroke();
+
+            ctx.fillStyle = 'rgba(255,255,255,0.65)';
+            ctx.font = '11px sans-serif';
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+            for (let i = 0; i <= 4; i++) {
+                const ratio = i / 4;
+                const y = plotTop + plotHeight - ratio * plotHeight;
+                const value = inst.yOffsetUnits + ((plotTop + plotHeight / 2) - y) / Math.max(1, inst.baseYScalePx * inst.yScale);
+                ctx.fillText(value.toFixed(Math.abs(value) < 10 ? 2 : 1), plotLeft - 6, y);
+                ctx.beginPath();
+                ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+                ctx.moveTo(plotLeft - 4, y + 0.5);
+                ctx.lineTo(plotLeft, y + 0.5);
+                ctx.stroke();
+            }
+
+            // time axis labels will be drawn after we compute visible timestamps
+
+            if (!inst.samples.length) {
+                inst._hoverPoints = [];
+                if (inst.hoverTooltipEl) {
+                    inst.hoverTooltipEl.classList.remove('active');
+                    inst.hoverTooltipEl.style.transform = 'translate(-9999px, -9999px)';
+                }
+                ctx.fillStyle = 'rgba(255,255,255,0.55)';
+                ctx.font = '14px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('等待串口数据...', plotLeft + plotWidth / 2, plotTop + plotHeight / 2);
+                ctx.restore();
+                return;
+            }
+
+            const range = getScopeVisibleRange(inst);
+            const visibleData = inst.samples.slice(range.start, range.end);
+            const visibleTimes = (inst.sampleTimes && inst.sampleTimes.slice(range.start, range.end)) || [];
+            const drawStart = Math.max(0, range.start - 1);
+            const drawEnd = Math.min(inst.samples.length, range.end + 1);
+            const drawData = inst.samples.slice(drawStart, drawEnd);
+            const drawTimes = (inst.sampleTimes && inst.sampleTimes.slice(drawStart, drawEnd)) || [];
+            const visibleCount = Math.max(0, visibleData.length);
+            const maxOffset = Math.max(0, range.totalSamples - visibleCount);
+            inst.viewOffset = Math.max(0, Math.min(inst.viewOffset || 0, maxOffset));
+            updateScopeHistorySlider(inst, range.totalSamples, visibleCount, maxOffset);
+
+            const lineColors = ['#22c55e', '#60a5fa', '#f97316', '#e879f9', '#f59e0b', '#38bdf8'];
+            const channelCount = Math.max(1, ...visibleData.map(sample => Array.isArray(sample) ? sample.length : 0));
+            const pxPerUnit = Math.max(1, inst.baseYScalePx * inst.yScale);
+            const centerY = plotTop + plotHeight / 2;
+
+            // zero line
+            ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+            ctx.beginPath();
+            ctx.moveTo(plotLeft, centerY + 0.5);
+            ctx.lineTo(plotLeft + plotWidth, centerY + 0.5);
+            ctx.stroke();
+            const axisEndTs = range.axisEndTs;
+            const axisStartTs = range.axisStartTs;
+            const axisDurationMs = range.axisDurationMs;
+            const hoverPoints = [];
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(plotLeft, plotTop, plotWidth, plotHeight);
+            ctx.clip();
+
+            for (let channel = 0; channel < channelCount; channel++) {
+                const color = lineColors[channel % lineColors.length];
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                let started = false;
+                drawData.forEach((sample, index) => {
+                    const value = Number(sample && sample[channel]);
+                    if (!Number.isFinite(value)) return;
+                    // map timestamp to x using axisStartTs/axisDurationMs
+                    const t = drawTimes[index] || (axisStartTs + (index / Math.max(1, drawData.length - 1)) * axisDurationMs);
+                    const rel = (t - axisStartTs) / axisDurationMs;
+                    const x = plotLeft + rel * plotWidth;
+                    const y = centerY - ((value - inst.yOffsetUnits) * pxPerUnit);
+                    if (x >= plotLeft - 2 && x <= plotLeft + plotWidth + 2 && y >= plotTop - 2 && y <= plotTop + plotHeight + 2) {
+                        hoverPoints.push({
+                            x,
+                            y,
+                            channel,
+                            value,
+                            timeMs: t - axisStartTs
+                        });
+                    }
+                    if (!started) {
+                        ctx.moveTo(x, y);
+                        started = true;
+                    }
+                    else ctx.lineTo(x, y);
+                });
+                ctx.stroke();
+
+                if (inst.showSampleMarkers !== false) {
+                    // draw sample markers for this channel (visible window only)
+                    ctx.fillStyle = color;
+                    for (let i = 0; i < visibleData.length; i++) {
+                        const sample = visibleData[i];
+                        const value = Number(sample && sample[channel]);
+                        if (!Number.isFinite(value)) continue;
+                        const t = visibleTimes[i] || (axisStartTs + (i / Math.max(1, visibleData.length - 1)) * axisDurationMs);
+                        const rel = (t - axisStartTs) / axisDurationMs;
+                        const x = plotLeft + rel * plotWidth;
+                        const y = centerY - ((value - inst.yOffsetUnits) * pxPerUnit);
+                        ctx.beginPath();
+                        ctx.arc(x, y, 3, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+                        ctx.lineWidth = 0.6;
+                        ctx.stroke();
+                    }
+                }
+            }
+            ctx.restore();
+            inst._hoverPoints = hoverPoints;
+
+            // draw small bottom ticks for each sample (subtle)
+            ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < visibleData.length; i++) {
+                const t = visibleTimes[i] || (axisStartTs + (i / Math.max(1, visibleData.length - 1)) * axisDurationMs);
+                const rel = (t - axisStartTs) / axisDurationMs;
+                const x = plotLeft + rel * plotWidth + 0.5;
+                ctx.beginPath();
+                ctx.moveTo(x, plotTop + plotHeight);
+                ctx.lineTo(x, plotTop + plotHeight + 6);
+                ctx.stroke();
+            }
+
+            // draw time axis ticks and labels based on axisDurationMs
+            const formatMs = (value) => {
+                if (!Number.isFinite(value)) return '0 ms';
+                if (Math.abs(value) < 10) return `${value.toFixed(1)} ms`;
+                return `${Math.round(value)} ms`;
+            };
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            for (let i = 0; i <= 5; i++) {
+                const ratio = i / 5;
+                const x = plotLeft + ratio * plotWidth;
+                const timeMs = ratio * axisDurationMs;
+                ctx.fillText(formatMs(timeMs), x, plotTop + plotHeight + 6);
+                ctx.beginPath();
+                ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+                ctx.moveTo(x + 0.5, plotTop + plotHeight);
+                ctx.lineTo(x + 0.5, plotTop + plotHeight + 4);
+                ctx.stroke();
+            }
+            ctx.fillText('ms', plotLeft + plotWidth - 6, plotTop + plotHeight + 22);
+
+            // update header stats instead of drawing on canvas
+            if (inst.scopeStatsEl) {
+                inst.scopeStatsEl.textContent = `样本: ${inst.samples.length}/${inst.samplePoints}  通道: ${channelCount}  当前时间窗口: ${formatMs(inst.timeWindowMs)}`;
+            }
+
+            ctx.restore();
+        }
+
+        function handleScopeSerialText(text) {
+            const inst = scopeManager.instance;
+            if (!inst || !text || inst.paused) return;
+            scopeSerialBuffer += String(text).replace(/\r/g, '');
+
+                const pushSample = (line) => {
+                const trimmed = line.trim();
+                if (!trimmed) return false;
+                const sample = trimmed.split(',').map(part => parseFloat(part.trim())).filter(Number.isFinite);
+                if (!sample.length) return false;
+                // attach arrival timestamp and push aligned arrays
+                const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+                inst.samples.push(sample);
+                if (!Array.isArray(inst.sampleTimes)) inst.sampleTimes = [];
+                inst.sampleTimes.push(now);
+                if (inst.samples.length > inst.samplePoints) {
+                    const remove = inst.samples.length - inst.samplePoints;
+                    inst.samples.splice(0, remove);
+                    if (inst.sampleTimes && inst.sampleTimes.length) inst.sampleTimes.splice(0, remove);
+                }
+                return true;
+            };
+
+            let updated = false;
+            const lines = scopeSerialBuffer.split('\n');
+            scopeSerialBuffer = lines.pop() || '';
+            lines.forEach(line => {
+                if (pushSample(line)) updated = true;
+            });
+
+            if (scopeSerialBuffer && pushSample(scopeSerialBuffer)) {
+                scopeSerialBuffer = '';
+                updated = true;
+            }
+
+            if (updated) {
+                renderScopeUI(inst);
+            }
+        }
+
         // --- Layout save/load/export/import ---
         function getLayoutData() {
             const layout = {
@@ -1799,7 +2915,25 @@ const char index_html[] PROGMEM = R"rawliteral(
                     reenableCondition: inst.reenableCondition,
                     delayMs: inst.delayMs,
                     receiveCmd: inst.receiveCmd
-                }))
+                })),
+                scope: scopeManager.instance ? {
+                    left: scopeManager.instance.win.style.left || scopeManager.instance.win.offsetLeft + 'px',
+                    top: scopeManager.instance.win.style.top || scopeManager.instance.win.offsetTop + 'px',
+                    width: scopeManager.instance.win.style.width || scopeManager.instance.win.offsetWidth + 'px',
+                    height: scopeManager.instance.win.style.height || scopeManager.instance.win.offsetHeight + 'px',
+                    locked: scopeManager.instance.win.dataset.locked === 'true',
+                    samplePoints: scopeManager.instance.samplePoints,
+                    samplesPerPixel: scopeManager.instance.samplesPerPixel,
+                    timeScaleMsPerSample: scopeManager.instance.timeScaleMsPerSample,
+                    timeWindowMs: scopeManager.instance.timeWindowMs,
+                    showSampleMarkers: scopeManager.instance.showSampleMarkers,
+                    viewTimeOffsetMs: scopeManager.instance.viewTimeOffsetMs,
+                    yScale: scopeManager.instance.yScale,
+                    yOffsetUnits: scopeManager.instance.yOffsetUnits,
+                    viewOffset: scopeManager.instance.viewOffset,
+                    samples: scopeManager.instance.samples,
+                    sampleTimes: scopeManager.instance.sampleTimes
+                } : null
             };
             return layout;
         }
@@ -1825,6 +2959,16 @@ const char index_html[] PROGMEM = R"rawliteral(
                 if (inst.win && inst.win.parentNode) inst.win.parentNode.removeChild(inst.win);
             });
             buttonManager.instances = [];
+            if (scopeManager.instance) {
+                if (scopeManager.instance._resizeObserver) scopeManager.instance._resizeObserver.disconnect();
+                if (scopeManager.instance._saveTimer) clearTimeout(scopeManager.instance._saveTimer);
+                if (scopeManager.instance.win && scopeManager.instance.win.parentNode) {
+                    scopeManager.instance.win.parentNode.removeChild(scopeManager.instance.win);
+                }
+                scopeManager.instance = null;
+            }
+            updateScopeButtonState(false);
+            scopeSerialBuffer = '';
         }
 
         function resetTerminalToDefault() {
@@ -1875,6 +3019,57 @@ const char index_html[] PROGMEM = R"rawliteral(
                         addTerminalBtn.querySelector('.status').textContent = '已添加';
                         addTerminalBtn.querySelector('.status').style.color = 'var(--success-color)';
                     }
+                }
+
+                // restore scope
+                if (obj.scope) {
+                    const scopeInst = createScopeWindow({
+                        left: obj.scope.left,
+                        top: obj.scope.top,
+                        width: obj.scope.width,
+                        height: obj.scope.height,
+                        locked: obj.scope.locked,
+                        samplePoints: obj.scope.samplePoints,
+                        samplesPerPixel: obj.scope.samplesPerPixel,
+                        timeScaleMsPerSample: obj.scope.timeScaleMsPerSample,
+                        timeWindowMs: obj.scope.timeWindowMs,
+                        showSampleMarkers: obj.scope.showSampleMarkers,
+                        viewTimeOffsetMs: obj.scope.viewTimeOffsetMs,
+                        yScale: obj.scope.yScale,
+                        yOffsetUnits: obj.scope.yOffsetUnits,
+                        viewOffset: obj.scope.viewOffset,
+                        samples: obj.scope.samples,
+                        sampleTimes: obj.scope.sampleTimes
+                    });
+                    if (scopeInst) {
+                        scopeInst.samplePoints = Math.max(100, Math.min(5000, parseInt(obj.scope.samplePoints, 10) || scopeInst.samplePoints));
+                        scopeInst.samples = Array.isArray(obj.scope.samples) ? obj.scope.samples.slice(-scopeInst.samplePoints) : [];
+                        scopeInst.sampleTimes = Array.isArray(obj.scope.sampleTimes) ? obj.scope.sampleTimes.slice(-scopeInst.samplePoints) : [];
+                        // if no sample times provided, synthesize uniformly spaced timestamps based on timeWindowMs or timeScaleMsPerSample
+                        if (!scopeInst.sampleTimes || scopeInst.sampleTimes.length < scopeInst.samples.length) {
+                            const times = [];
+                            const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+                            let step = Math.max(1, Number(scopeInst.timeScaleMsPerSample) || 1);
+                            if (Number.isFinite(scopeInst.timeWindowMs) && scopeInst.samples.length > 1) {
+                                step = Math.max(1, Math.round(scopeInst.timeWindowMs / Math.max(1, scopeInst.samples.length - 1)));
+                            }
+                            for (let i = scopeInst.samples.length - 1; i >= 0; i--) {
+                                times[i] = now - (scopeInst.samples.length - 1 - i) * step;
+                            }
+                            scopeInst.sampleTimes = times;
+                        }
+                        scopeInst.samplesPerPixel = typeof obj.scope.samplesPerPixel === 'number' ? obj.scope.samplesPerPixel : scopeInst.samplesPerPixel;
+                        scopeInst.timeScaleMsPerSample = typeof obj.scope.timeScaleMsPerSample === 'number' ? obj.scope.timeScaleMsPerSample : scopeInst.timeScaleMsPerSample;
+                        scopeInst.timeWindowMs = typeof obj.scope.timeWindowMs === 'number' ? obj.scope.timeWindowMs : scopeInst.timeWindowMs;
+                        scopeInst.showSampleMarkers = typeof obj.scope.showSampleMarkers === 'boolean' ? obj.scope.showSampleMarkers : scopeInst.showSampleMarkers;
+                        scopeInst.viewTimeOffsetMs = typeof obj.scope.viewTimeOffsetMs === 'number' ? obj.scope.viewTimeOffsetMs : scopeInst.viewTimeOffsetMs;
+                        scopeInst.yScale = typeof obj.scope.yScale === 'number' ? obj.scope.yScale : scopeInst.yScale;
+                        scopeInst.yOffsetUnits = typeof obj.scope.yOffsetUnits === 'number' ? obj.scope.yOffsetUnits : scopeInst.yOffsetUnits;
+                        scopeInst.viewOffset = typeof obj.scope.viewOffset === 'number' ? obj.scope.viewOffset : scopeInst.viewOffset;
+                        renderScopeUI(scopeInst);
+                    }
+                } else {
+                    updateScopeButtonState(false);
                 }
 
                 // restore params
@@ -2043,7 +3238,6 @@ const char index_html[] PROGMEM = R"rawliteral(
 
         function renderButtonSettingsModal() {
             if (!currentEditingBtnInst) return;
-            document.getElementById('btnWindowTitle').value = currentEditingBtnInst.title;
             document.getElementById('btnDisplayTxt').value = currentEditingBtnInst.btnText;
             document.getElementById('btnCmdTxt').value = currentEditingBtnInst.cmd;
             
@@ -2066,7 +3260,6 @@ const char index_html[] PROGMEM = R"rawliteral(
         document.getElementById('btnSaveButtonSettings').addEventListener('click', () => {
             if (!currentEditingBtnInst) return;
             
-            currentEditingBtnInst.title = document.getElementById('btnWindowTitle').value || "自定义按钮";
             currentEditingBtnInst.btnText = document.getElementById('btnDisplayTxt').value || "点击发送";
             currentEditingBtnInst.cmd = document.getElementById('btnCmdTxt').value || "";
             currentEditingBtnInst.disableOnClick = btnDisableOnClickChk.checked;
@@ -2092,6 +3285,67 @@ const char index_html[] PROGMEM = R"rawliteral(
             
             closeButtonModal();
             renderButtonUI(currentEditingBtnInst);
+            saveLayoutToLocal();
+        });
+
+        function renderScopeSettingsModal() {
+            if (!currentEditingScopeInst) return;
+            const posX = String(parseInt(currentEditingScopeInst.win.style.left, 10) || currentEditingScopeInst.win.offsetLeft || 120);
+            const posY = String(parseInt(currentEditingScopeInst.win.style.top, 10) || currentEditingScopeInst.win.offsetTop || 120);
+            const width = String(parseInt(currentEditingScopeInst.win.style.width, 10) || currentEditingScopeInst.win.offsetWidth || 780);
+            const height = String(parseInt(currentEditingScopeInst.win.style.height, 10) || currentEditingScopeInst.win.offsetHeight || 380);
+
+            document.getElementById('scopePosX').value = posX;
+            document.getElementById('scopePosY').value = posY;
+            document.getElementById('scopeWidth').value = width;
+            document.getElementById('scopeHeight').value = height;
+            document.getElementById('scopeSamplePoints').value = currentEditingScopeInst.samplePoints || 1000;
+            document.getElementById('scopeShowSampleMarkers').checked = currentEditingScopeInst.showSampleMarkers !== false;
+
+            // cache original geometry values; save step will only apply changed geometry fields
+            scopeSettingsModal.dataset.scopeOrigPosX = posX;
+            scopeSettingsModal.dataset.scopeOrigPosY = posY;
+            scopeSettingsModal.dataset.scopeOrigWidth = width;
+            scopeSettingsModal.dataset.scopeOrigHeight = height;
+        }
+
+        btnSaveScopeSettings.addEventListener('click', () => {
+            if (!currentEditingScopeInst) return;
+
+            const scopePosX = document.getElementById('scopePosX').value;
+            const scopePosY = document.getElementById('scopePosY').value;
+            const scopeWidth = document.getElementById('scopeWidth').value;
+            const scopeHeight = document.getElementById('scopeHeight').value;
+            const scopeSamplePoints = Math.max(100, Math.min(5000, parseInt(document.getElementById('scopeSamplePoints').value, 10) || 1000));
+            const scopeShowSampleMarkers = !!document.getElementById('scopeShowSampleMarkers').checked;
+
+            const origPosX = scopeSettingsModal.dataset.scopeOrigPosX || '';
+            const origPosY = scopeSettingsModal.dataset.scopeOrigPosY || '';
+            const origWidth = scopeSettingsModal.dataset.scopeOrigWidth || '';
+            const origHeight = scopeSettingsModal.dataset.scopeOrigHeight || '';
+
+            const posXChanged = scopePosX !== '' && scopePosX !== origPosX;
+            const posYChanged = scopePosY !== '' && scopePosY !== origPosY;
+            const widthChanged = scopeWidth !== '' && scopeWidth !== origWidth;
+            const heightChanged = scopeHeight !== '' && scopeHeight !== origHeight;
+
+            if (posXChanged) currentEditingScopeInst.win.style.left = scopePosX + 'px';
+            if (posYChanged) currentEditingScopeInst.win.style.top = scopePosY + 'px';
+            if (widthChanged) currentEditingScopeInst.win.style.width = scopeWidth + 'px';
+            if (heightChanged) currentEditingScopeInst.win.style.height = scopeHeight + 'px';
+
+            currentEditingScopeInst.samplePoints = scopeSamplePoints;
+            currentEditingScopeInst.showSampleMarkers = scopeShowSampleMarkers;
+            if (currentEditingScopeInst.samples.length > scopeSamplePoints) {
+                currentEditingScopeInst.samples = currentEditingScopeInst.samples.slice(-scopeSamplePoints);
+                if (Array.isArray(currentEditingScopeInst.sampleTimes)) {
+                    currentEditingScopeInst.sampleTimes = currentEditingScopeInst.sampleTimes.slice(-scopeSamplePoints);
+                }
+            }
+            currentEditingScopeInst.viewOffset = Math.max(0, Math.min(currentEditingScopeInst.viewOffset || 0, Math.max(0, currentEditingScopeInst.samples.length - 1)));
+
+            closeScopeModal();
+            renderScopeUI(currentEditingScopeInst);
             saveLayoutToLocal();
         });
 
@@ -2217,6 +3471,8 @@ const char index_html[] PROGMEM = R"rawliteral(
                     strData = String(data);
                 }
 
+                handleScopeSerialText(strData);
+
                 // Check disabled buttons relying on receive condition
                 buttonManager.instances.forEach(inst => {
                     if (inst.disableOnClick && inst.reenableCondition === 'receive' && inst.btnEl.disabled) {
@@ -2299,7 +3555,6 @@ const char index_html[] PROGMEM = R"rawliteral(
 </html>
 )rawliteral";
 
-// ==================== WebSocket 事件处理 ====================
 void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
                     size_t length) {
   switch (type) {
@@ -2323,7 +3578,6 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
     break;
   }
 }
-
 // ==================== HTTP 请求处理 ====================
 void handleRoot() { server.send(200, "text/html", index_html); }
 
@@ -2346,9 +3600,7 @@ void setup() {
   webSocket.begin();
   webSocket.onEvent(webSocketEvent);
 
-  // 可选：板载 LED 指示
-  pinMode(LED_BUILTIN, OUTPUT);
-  digitalWrite(LED_BUILTIN, LOW); // 低电平点亮（根据模块调整）
+  Serial.println("ESP-01S Init!");
 }
 
 // ==================== 主循环 ====================
@@ -2367,5 +3619,5 @@ void loop() {
     } else {
       serialInBuffer += c;
     }
-  }
+  } 
 }

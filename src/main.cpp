@@ -11,6 +11,7 @@ WebSocketsServer webSocket(81);
 
 bool waitingResponse = false;
 String serialInBuffer = "";
+int activeClient = -1; // 当前活跃的 WebSocket 客户端编号，-1 表示无连接
 const char index_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE html>
 <html lang="zh-CN" data-theme="light">
@@ -22,26 +23,52 @@ const char index_html[] PROGMEM = R"rawliteral(
         :root {
             --primary-color: #2563eb;
             --primary-hover: #1d4ed8;
+            --primary-subtle: rgba(37, 99, 235, 0.08);
             --bg-color: #f1f5f9;
+            --bg-subtle: #e8edf5;
             --surface-color: #ffffff;
+            --surface-raised: #f8fafc;
             --text-main: #1e293b;
             --text-muted: #64748b;
             --border-color: #e2e8f0;
-            --success-color: #10b981;
-            --danger-color: #ef4444;
+            --border-strong: #cbd5e1;
+            --success-color: #059669;
+            --success-bg: #d1fae5;
+            --danger-color: #dc2626;
+            --danger-bg: #fee2e2;
             --input-bg: #ffffff;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.05);
+            --shadow-lg: 0 10px 24px rgba(0,0,0,0.10), 0 4px 8px rgba(0,0,0,0.06);
+            --terminal-bg: #1a1f2e;
+            --terminal-fg: #cdd6f4;
+            --scope-bg: #0f172a;
             --topbar-height: 64px;
         }
 
         [data-theme="dark"] {
-            --bg-color: #0f172a;
-            --surface-color: #1e293b;
-            --text-main: #f8fafc;
+            --primary-color: #60a5fa;
+            --primary-hover: #93c5fd;
+            --primary-subtle: rgba(96, 165, 250, 0.12);
+            --bg-color: #0b1120;
+            --bg-subtle: #111827;
+            --surface-color: #1a2236;
+            --surface-raised: #1e293b;
+            --text-main: #e2e8f0;
             --text-muted: #94a3b8;
-            --border-color: #334155;
-            --primary-color: #3b82f6;
-            --primary-hover: #60a5fa;
-            --input-bg: #0f172a;
+            --border-color: #2a3244;
+            --border-strong: #3a4560;
+            --success-color: #34d399;
+            --success-bg: rgba(52, 211, 153, 0.12);
+            --danger-color: #f87171;
+            --danger-bg: rgba(248, 113, 113, 0.12);
+            --input-bg: #0b1120;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.35), 0 2px 6px rgba(0,0,0,0.25);
+            --shadow-lg: 0 10px 24px rgba(0,0,0,0.45), 0 4px 8px rgba(0,0,0,0.3);
+            --terminal-bg: #0d1117;
+            --terminal-fg: #cdd6f4;
+            --scope-bg: #060e1a;
         }
 
         * {
@@ -73,7 +100,7 @@ const char index_html[] PROGMEM = R"rawliteral(
             background-color: var(--bg-color);
             color: var(--text-main);
             height: 100vh;
-            overflow: hidden; /* 防止页面整体滚动，只允许浮动窗口内部滚动 */
+            overflow: hidden;
             transition: background-color 0.3s, color 0.3s;
         }
 
@@ -90,9 +117,9 @@ const char index_html[] PROGMEM = R"rawliteral(
             justify-content: space-between;
             align-items: center;
             padding: 0 24px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            box-shadow: var(--shadow-sm);
             z-index: 1000;
-            transition: background-color 0.3s;
+            transition: background-color 0.3s, border-color 0.3s, box-shadow 0.3s;
         }
 
         .top-bar-left {
@@ -114,20 +141,14 @@ const char index_html[] PROGMEM = R"rawliteral(
             border-radius: 9999px;
             font-size: 0.875rem;
             font-weight: 500;
-            background-color: #fee2e2;
+            background-color: var(--danger-bg);
             color: var(--danger-color);
+            transition: background-color 0.3s, color 0.3s;
         }
 
         .status-badge.connected {
-            background-color: #d1fae5;
+            background-color: var(--success-bg);
             color: var(--success-color);
-        }
-
-        [data-theme="dark"] .status-badge {
-            background-color: rgba(239, 68, 68, 0.2);
-        }
-        [data-theme="dark"] .status-badge.connected {
-            background-color: rgba(16, 185, 129, 0.2);
         }
 
         .status-dot {
@@ -169,12 +190,12 @@ const char index_html[] PROGMEM = R"rawliteral(
             display: none;
             background-color: var(--surface-color);
             border: 1px solid var(--border-color);
-            border-radius: 8px;
+            border-radius: 10px;
             padding: 20px;
             gap: 16px;
             flex-direction: column;
             width: 340px;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            box-shadow: var(--shadow-lg);
             z-index: 1000;
         }
 
@@ -207,13 +228,29 @@ const char index_html[] PROGMEM = R"rawliteral(
             border-radius: 6px;
             font-size: 0.95rem;
             outline: none;
-            transition: border-color 0.2s;
+            transition: border-color 0.2s, background-color 0.3s, color 0.3s, box-shadow 0.2s;
             background-color: var(--input-bg);
             color: var(--text-main);
+            color-scheme: light;
         }
+
+        [data-theme="dark"] input[type="text"],
+        [data-theme="dark"] input[type="number"],
+        [data-theme="dark"] select {
+            color-scheme: dark;
+        }
+
+        /* 隐藏 number input 的 spinner */
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="number"] { appearance: textfield; }
 
         input[type="text"]:focus, input[type="number"]:focus, select:focus {
             border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px var(--primary-subtle);
         }
         
         input[type="checkbox"] {
@@ -238,22 +275,33 @@ const char index_html[] PROGMEM = R"rawliteral(
 
         button:hover {
             background-color: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        button:active {
+            transform: translateY(0);
+            box-shadow: none;
         }
 
         button:disabled {
-            background-color: var(--text-muted);
+            background-color: var(--border-strong);
             cursor: not-allowed;
             opacity: 0.5;
+            transform: none;
+            box-shadow: none;
         }
 
-        button.btn-danger { background-color: var(--danger-color); }
-        button.btn-danger:hover { background-color: #dc2626; }
+        button.btn-danger { background-color: var(--danger-color); color: white; }
+        button.btn-danger:hover { background-color: #b91c1c; }
+        [data-theme="dark"] button.btn-danger { background-color: #7f1d1d; color: var(--danger-color); border: 1px solid var(--danger-color); }
+        [data-theme="dark"] button.btn-danger:hover { background-color: #991b1b; }
         button.btn-secondary {
             background-color: transparent;
             color: var(--text-main);
             border: 1px solid var(--border-color);
         }
-        button.btn-secondary:hover { background-color: var(--bg-color); }
+        button.btn-secondary:hover { background-color: var(--bg-subtle); border-color: var(--border-strong); }
 
         /* 可移动/调节大小的终端窗口 */
         .workspace {
@@ -274,14 +322,15 @@ const char index_html[] PROGMEM = R"rawliteral(
             max-width: 100vw;
             max-height: calc(100vh - var(--topbar-height));
             background-color: var(--surface-color);
-            border-radius: 8px;
+            border-radius: 10px;
             border: 1px solid var(--border-color);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            box-shadow: var(--shadow-lg);
             display: flex;
             flex-direction: column;
             resize: both;
             overflow: hidden;
             z-index: 10;
+            transition: border-color 0.3s, background-color 0.3s, box-shadow 0.3s;
         }
 
         .window-header {
@@ -289,10 +338,11 @@ const char index_html[] PROGMEM = R"rawliteral(
             justify-content: space-between;
             align-items: center;
             padding: 10px 16px;
-            background-color: var(--bg-color);
+            background-color: var(--surface-raised);
             border-bottom: 1px solid var(--border-color);
             cursor: grab;
             user-select: none;
+            transition: background-color 0.3s, border-color 0.3s;
         }
 
         .header-right { display:flex; gap:12px; align-items:center; }
@@ -325,8 +375,8 @@ const char index_html[] PROGMEM = R"rawliteral(
 
         .terminal-content {
             flex: 1;
-            background-color: #1e1e1e;
-            color: #d4d4d4;
+            background-color: var(--terminal-bg);
+            color: var(--terminal-fg);
             font-family: "Consolas", "Courier New", monospace;
             padding: 16px;
             overflow-y: auto;
@@ -334,8 +384,9 @@ const char index_html[] PROGMEM = R"rawliteral(
             word-wrap: break-word;
             font-size: 14px;
             line-height: 1.5;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
-            overflow-anchor: none; /* 防止大量加载时跳动 */
+            box-shadow: inset 0 2px 6px rgba(0,0,0,0.15);
+            overflow-anchor: none;
+            transition: background-color 0.3s, color 0.3s;
         }
         
         .terminal-content div {
@@ -373,8 +424,8 @@ const char index_html[] PROGMEM = R"rawliteral(
             position: fixed;
             background-color: var(--surface-color);
             border: 1px solid var(--border-color);
-            border-radius: 6px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            box-shadow: var(--shadow-lg);
             display: none;
             flex-direction: column;
             padding: 4px 0;
@@ -385,10 +436,11 @@ const char index_html[] PROGMEM = R"rawliteral(
             font-size: 0.9rem;
             cursor: pointer;
             color: var(--text-main);
-            min-width: 120px;
+            min-width: 140px;
+            transition: background-color 0.15s, color 0.15s;
         }
         .menu-item:hover {
-            background-color: var(--bg-color);
+            background-color: var(--primary-subtle);
             color: var(--primary-color);
         }
         .menu-separator {
@@ -401,9 +453,9 @@ const char index_html[] PROGMEM = R"rawliteral(
         .modal-overlay {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
-            background-color: rgba(0, 0, 0, 0.3);
-            backdrop-filter: blur(4px);
-            -webkit-backdrop-filter: blur(4px);
+            background-color: rgba(0, 0, 0, 0.45);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
             z-index: 3000;
             display: none;
             justify-content: center;
@@ -417,24 +469,27 @@ const char index_html[] PROGMEM = R"rawliteral(
         }
         .modal {
             background-color: var(--surface-color);
-            border-radius: 12px;
+            border-radius: 14px;
             width: 480px;
             max-width: 90vw;
-            box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+            box-shadow: var(--shadow-lg);
             display: flex;
             flex-direction: column;
             overflow: hidden;
             border: 1px solid var(--border-color);
+            transition: background-color 0.3s, border-color 0.3s;
         }
         .modal-header {
-            padding: 20px 24px;
+            padding: 18px 24px;
             border-bottom: 1px solid var(--border-color);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            background-color: var(--surface-raised);
         }
         .modal-header h3 {
-            font-size: 1.25rem;
+            font-size: 1.1rem;
+            font-weight: 600;
             color: var(--text-main);
         }
         .modal-content {
@@ -444,9 +499,9 @@ const char index_html[] PROGMEM = R"rawliteral(
             gap: 20px;
         }
         .modal-footer {
-            padding: 20px 24px;
+            padding: 16px 24px;
             border-top: 1px solid var(--border-color);
-            background-color: var(--bg-color);
+            background-color: var(--surface-raised);
             display: flex;
             justify-content: flex-end;
         }
@@ -473,10 +528,11 @@ const char index_html[] PROGMEM = R"rawliteral(
             height: 100vh;
             background-color: var(--surface-color);
             z-index: 1100;
-            box-shadow: 4px 0 15px rgba(0,0,0,0.1);
-            transition: left 0.3s ease;
+            box-shadow: 6px 0 20px rgba(0,0,0,0.12);
+            transition: left 0.3s ease, background-color 0.3s;
             display: flex;
             flex-direction: column;
+            border-right: 1px solid var(--border-color);
         }
         .sidebar.active {
             left: 0;
@@ -516,15 +572,17 @@ const char index_html[] PROGMEM = R"rawliteral(
             justify-content: space-between;
             align-items: center;
             padding: 12px 16px;
-            background-color: var(--bg-color);
+            background-color: var(--bg-subtle);
             border: 1px solid var(--border-color);
             border-radius: 8px;
             cursor: pointer;
-            transition: border-color 0.2s, background-color 0.2s;
+            transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
             margin-bottom: 10px;
         }
         .component-item:hover {
             border-color: var(--primary-color);
+            background-color: var(--primary-subtle);
+            box-shadow: var(--shadow-sm);
         }
         .component-item.disabled {
             opacity: 0.6;
@@ -532,6 +590,8 @@ const char index_html[] PROGMEM = R"rawliteral(
         }
         .component-item.disabled:hover {
             border-color: var(--border-color);
+            background-color: var(--bg-subtle);
+            box-shadow: none;
         }
 
         /* 参数调试组件样式 */
@@ -548,11 +608,12 @@ const char index_html[] PROGMEM = R"rawliteral(
             display: flex;
             flex-direction: column;
             gap: 10px;
-            background-color: var(--surface-color);
+            background-color: var(--surface-raised);
             padding: 16px;
             border-radius: 8px;
             border: 1px solid var(--border-color);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            box-shadow: var(--shadow-sm);
+            transition: background-color 0.3s, border-color 0.3s;
         }
 
         .param-header {
@@ -566,11 +627,12 @@ const char index_html[] PROGMEM = R"rawliteral(
         .param-val {
             font-family: 'Consolas', monospace;
             color: var(--primary-color);
-            background: var(--bg-color);
+            background: var(--bg-subtle);
             padding: 4px 8px;
             border-radius: 4px;
             border: 1px solid var(--border-color);
             font-size: 0.9rem;
+            transition: background-color 0.3s, border-color 0.3s;
         }
 
         .param-controls {
@@ -588,7 +650,7 @@ const char index_html[] PROGMEM = R"rawliteral(
 
         .param-btn {
             background-color: transparent;
-            border: none;
+            border: 1px solid var(--border-color);
             color: var(--text-main);
             width: 32px;
             height: 32px;
@@ -603,8 +665,11 @@ const char index_html[] PROGMEM = R"rawliteral(
         }
 
         .param-btn:hover {
-            background-color: rgba(0, 0, 0, 0.05); /* Slight feedback */
+            background-color: var(--primary-subtle);
+            border-color: var(--primary-color);
             color: var(--primary-color);
+            transform: none;
+            box-shadow: none;
         }
         
         #paramConfigs {
@@ -617,9 +682,10 @@ const char index_html[] PROGMEM = R"rawliteral(
             border: 1px solid var(--border-color);
             padding: 12px;
             border-radius: 8px;
-            background-color: var(--bg-color);
+            background-color: var(--bg-subtle);
             margin-bottom: 12px;
             position: relative;
+            transition: background-color 0.3s, border-color 0.3s;
         }
 
         .cfg-header {
@@ -636,10 +702,12 @@ const char index_html[] PROGMEM = R"rawliteral(
             border: 1px solid transparent;
             width: 200px;
             padding: 4px 8px;
+            color: var(--text-main);
         }
         .cfg-header input.cfg-name:focus {
             background: var(--surface-color);
             border: 1px solid var(--primary-color);
+            border-radius: 4px;
         }
 
         .cfg-delete-btn {
@@ -649,9 +717,13 @@ const char index_html[] PROGMEM = R"rawliteral(
             cursor: pointer;
             padding: 4px;
             opacity: 0.7;
+            transform: none;
+            box-shadow: none;
         }
         .cfg-delete-btn:hover {
             opacity: 1;
+            transform: none;
+            box-shadow: none;
         }
 
         .cfg-grid {
@@ -683,10 +755,11 @@ const char index_html[] PROGMEM = R"rawliteral(
             border: 1px solid var(--border-color);
             border-radius: 8px;
             overflow: hidden;
-            background: #0f172a;
+            background: var(--scope-bg);
             cursor: grab;
             user-select: none;
             touch-action: none;
+            transition: border-color 0.3s;
         }
 
         .scope-plot:active {
@@ -872,16 +945,24 @@ const char index_html[] PROGMEM = R"rawliteral(
             padding: 6px 10px;
             font-size: 0.85rem;
             border-radius: 8px;
-            background-color: rgba(255,255,255,0.03);
+            background-color: var(--bg-subtle);
             color: var(--text-main);
-            border: 1px solid transparent;
+            border: 1px solid var(--border-color);
             cursor: pointer;
             transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+            transform: none;
+            box-shadow: none;
         }
-        .scope-ctrl-btn:hover { background-color: rgba(255,255,255,0.06); border-color: rgba(148,163,184,0.12); }
+        .scope-ctrl-btn:hover {
+            background-color: var(--primary-subtle);
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+            transform: none;
+            box-shadow: none;
+        }
 
-        .scope-clear-btn { background-color: rgba(239,68,68,0.06); color: var(--danger-color); }
-        .scope-clear-btn:hover { background-color: rgba(239,68,68,0.12); }
+        .scope-clear-btn { background-color: var(--danger-bg); color: var(--danger-color); border-color: transparent; }
+        .scope-clear-btn:hover { background-color: var(--danger-bg); border-color: var(--danger-color); color: var(--danger-color); }
 
         .scope-meta { display:flex; align-items:center; gap:12px; color:var(--text-muted); font-size:0.9rem; }
         .scope-stats { color: var(--text-main); font-weight:600; font-size:0.9rem; }
@@ -1267,7 +1348,10 @@ const char index_html[] PROGMEM = R"rawliteral(
         }
 
         btnAddToggle.addEventListener('click', toggleSidebar);
-        sidebarOverlay.addEventListener('click', () => {
+        let _overlayMouseDownTarget = null;
+        sidebarOverlay.addEventListener('mousedown', (e) => { _overlayMouseDownTarget = e.target; });
+        sidebarOverlay.addEventListener('mouseup', (e) => {
+            if (e.target !== sidebarOverlay || _overlayMouseDownTarget !== sidebarOverlay) return;
             if (sidebar.classList.contains('active')) toggleSidebar();
             if (settingsSidebar.classList.contains('active')) toggleSettingsSidebar();
         });
@@ -1507,8 +1591,12 @@ const char index_html[] PROGMEM = R"rawliteral(
             const rect = workspaceEl.getBoundingClientRect();
             const w = movingButtonWin.offsetWidth;
             const h = movingButtonWin.offsetHeight;
-            movingButtonWin.style.left = (e.clientX - rect.left - w/2) + 'px';
-            movingButtonWin.style.top = (e.clientY - rect.top - h/2) + 'px';
+            let newLeft = e.clientX - rect.left - w / 2;
+            let newTop = e.clientY - rect.top - h / 2;
+            newLeft = Math.max(0, Math.min(newLeft, rect.width - w));
+            newTop = Math.max(0, Math.min(newTop, rect.height - h));
+            movingButtonWin.style.left = newLeft + 'px';
+            movingButtonWin.style.top = newTop + 'px';
         }
 
         function onButtonMoveEnd(e) {
@@ -1666,17 +1754,22 @@ const char index_html[] PROGMEM = R"rawliteral(
         btnCloseButtonModal.addEventListener('click', closeButtonModal);
         btnCloseScopeModal.addEventListener('click', closeScopeModal);
         
-        modalOverlay.addEventListener('click', (e) => {
-            if (e.target === modalOverlay) closeModal();
+        let _modalMouseDownTarget = null;
+        modalOverlay.addEventListener('mousedown', (e) => { _modalMouseDownTarget = e.target; });
+        modalOverlay.addEventListener('mouseup', (e) => {
+            if (e.target === modalOverlay && _modalMouseDownTarget === modalOverlay) closeModal();
         });
-        paramModalOverlay.addEventListener('click', (e) => {
-            if (e.target === paramModalOverlay) closeParamModal();
+        paramModalOverlay.addEventListener('mousedown', (e) => { _modalMouseDownTarget = e.target; });
+        paramModalOverlay.addEventListener('mouseup', (e) => {
+            if (e.target === paramModalOverlay && _modalMouseDownTarget === paramModalOverlay) closeParamModal();
         });
-        buttonSettingsModal.addEventListener('click', (e) => {
-            if (e.target === buttonSettingsModal) closeButtonModal();
+        buttonSettingsModal.addEventListener('mousedown', (e) => { _modalMouseDownTarget = e.target; });
+        buttonSettingsModal.addEventListener('mouseup', (e) => {
+            if (e.target === buttonSettingsModal && _modalMouseDownTarget === buttonSettingsModal) closeButtonModal();
         });
-        scopeSettingsModal.addEventListener('click', (e) => {
-            if (e.target === scopeSettingsModal) closeScopeModal();
+        scopeSettingsModal.addEventListener('mousedown', (e) => { _modalMouseDownTarget = e.target; });
+        scopeSettingsModal.addEventListener('mouseup', (e) => {
+            if (e.target === scopeSettingsModal && _modalMouseDownTarget === scopeSettingsModal) closeScopeModal();
         });
 
         btnSaveComponentSettings.addEventListener('click', () => {
@@ -1938,15 +2031,18 @@ const char index_html[] PROGMEM = R"rawliteral(
                     });
                 }
 
+                const stepDecimals = (cfg.step.toString().split('.')[1] || '').length;
+                const roundStep = (v) => parseFloat(v.toFixed(stepDecimals));
+
                 if (btnMinus) {
                     btnMinus.addEventListener('click', () => {
-                        updateAndSend(cfg.val - cfg.step);
+                        updateAndSend(roundStep(cfg.val - cfg.step));
                     });
                 }
 
                 if (btnPlus) {
                     btnPlus.addEventListener('click', () => {
-                        updateAndSend(cfg.val + cfg.step);
+                        updateAndSend(roundStep(cfg.val + cfg.step));
                     });
                 }
             });
@@ -3560,18 +3656,25 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
   switch (type) {
   case WStype_DISCONNECTED:
     Serial.printf("[%u] 断开连接\n", num);
+    if (activeClient == (int)num) {
+      activeClient = -1; // 清除活跃客户端，避免向死连接发送数据
+    }
     break;
   case WStype_CONNECTED: {
     IPAddress ip = webSocket.remoteIP(num);
     Serial.printf("[%u] 新连接来自 %d.%d.%d.%d\n", num, ip[0], ip[1], ip[2],
                   ip[3]);
+    // 若有旧的活跃连接，先强制断开，确保只保留最新连接
+    if (activeClient != -1 && activeClient != (int)num) {
+      webSocket.disconnect(activeClient);
+    }
+    activeClient = (int)num;
     webSocket.sendTXT(num, "Connected to ESP8266");
     break;
   }
   case WStype_TEXT: {
     String cmd = String((char *)payload);
     Serial.println(cmd); // 通过串口转发给主控 MCU（带换行符）
-
     break;
   }
   default:
@@ -3599,6 +3702,8 @@ void setup() {
   // 启动 WebSocket 服务
   webSocket.begin();
   webSocket.onEvent(webSocketEvent);
+  // 启用心跳：每 5s 发一次 ping，等待 pong 超时 3s，超时后断开死连接
+  webSocket.enableHeartbeat(5000, 3000, 2);
 
   Serial.println("ESP-01S Init!");
 }
@@ -3610,8 +3715,9 @@ void loop() {
   while (Serial.available()) {
     char c = Serial.read();
     if (c == '\n') {
-      if (serialInBuffer.length() > 0) {
-        webSocket.broadcastTXT(serialInBuffer);
+      if (serialInBuffer.length() > 0 && activeClient != -1) {
+        // 只向当前活跃客户端发送，避免向死连接写入导致 TCP 阻塞
+        webSocket.sendTXT(activeClient, serialInBuffer);
       }
       serialInBuffer = "";
     } else if (c == '\r') {
@@ -3619,5 +3725,5 @@ void loop() {
     } else {
       serialInBuffer += c;
     }
-  } 
+  }
 }

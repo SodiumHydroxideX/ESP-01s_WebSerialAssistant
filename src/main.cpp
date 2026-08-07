@@ -1,10 +1,18 @@
+#include <EEPROM.h>
 #include <ESP8266WebServer.h>
 #include <ESP8266WiFi.h>
 #include <WebSocketsServer.h>
 
 // ==================== 配置 ====================
-const char *ssid = "ESP-01S";
-const char *password = "12345678";
+const char *apSsid = "ESP-01S";
+const char *apPassword = "12345678";
+
+// EEPROM 布局：[0..63] STA SSID，[64..127] STA Password，[128] 有效标志(0xAB)
+#define EEPROM_SIZE 256
+#define EEPROM_SSID_ADDR 0
+#define EEPROM_PASS_ADDR 64
+#define EEPROM_FLAG_ADDR 128
+#define EEPROM_VALID_FLAG 0xAB
 
 ESP8266WebServer server(80);
 WebSocketsServer webSocket(81);
@@ -999,15 +1007,34 @@ const char index_html[] PROGMEM = R"rawliteral(
             <div class="setting-group">
                 <label for="wsUrl">WebSocket连接地址</label>
                 <div class="input-group">
-                    <input type="text" id="wsUrl" value="ws://192.168.4.1:81" placeholder="ws://192.168.4.1:81">
+                    <input type="text" id="wsUrl" placeholder="ws://192.168.4.1:81">
                 </div>
                 <div class="input-group" style="margin-top: 4px;">
                     <button id="btnConnect" style="flex: 1;">连接</button>
                     <button id="btnDisconnect" class="btn-danger" style="display: none; flex: 1;">断开</button>
                 </div>
             </div>
+
+            <hr style="border:none; border-top:1px solid var(--border-color); margin: 16px 0;">
+
+            <div class="setting-group">
+                <label>局域网 WiFi 配置</label>
+                <div id="staStatus" style="font-size:0.85rem; color:var(--text-muted); margin-bottom:6px;">正在获取状态...</div>
+                <div class="input-group">
+                    <input type="text" id="staSsid" placeholder="WiFi 名称 (SSID)">
+                </div>
+                <div class="input-group" style="margin-top: 4px;">
+                    <input type="password" id="staPass" placeholder="WiFi 密码">
+                </div>
+                <div class="input-group" style="margin-top: 4px; gap: 4px;">
+                    <button id="btnStaConnect" style="flex: 1;">保存并连接</button>
+                    <button id="btnStaForget" class="btn-danger" style="flex: 1; display:none;">忘记</button>
+                </div>
+            </div>
             
-            <div class="setting-group" style="margin-top: 16px;">
+            <hr style="border:none; border-top:1px solid var(--border-color); margin: 16px 0;">
+
+            <div class="setting-group">
                 <label for="themeSelect">主题颜色</label>
                 <select id="themeSelect">
                     <option value="light">浅色 (白色)</option>
@@ -1306,6 +1333,66 @@ const char index_html[] PROGMEM = R"rawliteral(
         const themeSelect = document.getElementById('themeSelect');
 
         let ws = null;
+
+        // 根据当前访问页面的 host 自动填充 WS 地址
+        (function () {
+            const host = window.location.hostname || '192.168.4.1';
+            wsUrlInput.value = 'ws://' + host + ':81';
+        })();
+
+        // --- WiFi STA 配置 ---
+        const staStatus = document.getElementById('staStatus');
+        const staSsid = document.getElementById('staSsid');
+        const staPass = document.getElementById('staPass');
+        const btnStaConnect = document.getElementById('btnStaConnect');
+        const btnStaForget = document.getElementById('btnStaForget');
+
+        function refreshStaStatus() {
+            fetch('/sta-status').then(r => r.json()).then(d => {
+                if (d.connected) {
+                    staStatus.style.color = 'var(--success-color)';
+                    staStatus.textContent = '已连接：' + d.ssid + '（' + d.ip + '）';
+                    staSsid.value = d.ssid;
+                    btnStaForget.style.display = 'inline-flex';
+                } else if (d.staEnabled) {
+                    staStatus.style.color = 'var(--text-muted)';
+                    staStatus.textContent = '正在连接：' + d.ssid + '（未获取到 IP）';
+                    staSsid.value = d.ssid;
+                    btnStaForget.style.display = 'inline-flex';
+                } else {
+                    staStatus.style.color = 'var(--text-muted)';
+                    staStatus.textContent = '未配置，仅热点模式';
+                    btnStaForget.style.display = 'none';
+                }
+            }).catch(() => {
+                staStatus.textContent = '无法获取状态';
+            });
+        }
+
+        btnStaConnect.addEventListener('click', () => {
+            const s = staSsid.value.trim();
+            if (!s) { alert('请输入 WiFi 名称'); return; }
+            const body = new URLSearchParams({ ssid: s, password: staPass.value });
+            btnStaConnect.disabled = true;
+            fetch('/sta-connect', { method: 'POST', body }).then(r => r.json()).then(() => {
+                staStatus.style.color = 'var(--text-muted)';
+                staStatus.textContent = '正在连接，约 10 秒后可查看状态…';
+                setTimeout(refreshStaStatus, 10000);
+            }).catch(() => {
+                staStatus.textContent = '请求失败';
+            }).finally(() => { btnStaConnect.disabled = false; });
+        });
+
+        btnStaForget.addEventListener('click', () => {
+            fetch('/sta-forget', { method: 'POST' }).then(() => {
+                staSsid.value = '';
+                staPass.value = '';
+                refreshStaStatus();
+            });
+        });
+
+        // 打开设置面板时刷新状态
+        document.getElementById('btnSettingsToggle') && document.getElementById('btnSettingsToggle').addEventListener('click', refreshStaStatus);
 
         // --- Settings / Theme Toggle ---
         let maxTerminalLines = 1000;
@@ -3681,21 +3768,92 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
     break;
   }
 }
+// ==================== EEPROM 读写辅助 ====================
+void eepromReadStr(int addr, char *buf, int maxLen) {
+  for (int i = 0; i < maxLen - 1; i++) {
+    buf[i] = EEPROM.read(addr + i);
+    if (buf[i] == '\0') break;
+  }
+  buf[maxLen - 1] = '\0';
+}
+
+void eepromWriteStr(int addr, const char *str, int maxLen) {
+  int len = (int)strlen(str);
+  int end = len < maxLen - 1 ? len : maxLen - 1;
+  for (int i = 0; i < end; i++)
+    EEPROM.write(addr + i, str[i]);
+  EEPROM.write(addr + end, '\0');
+}
+
 // ==================== HTTP 请求处理 ====================
 void handleRoot() { server.send(200, "text/html", index_html); }
 
 void handleNotFound() { server.send(404, "text/plain", "404: Not Found"); }
 
+// GET /sta-status → JSON: {staEnabled, connected, ip, ssid}
+void handleStaStatus() {
+  bool hasCfg = (EEPROM.read(EEPROM_FLAG_ADDR) == EEPROM_VALID_FLAG);
+  char savedSsid[64] = {};
+  if (hasCfg) eepromReadStr(EEPROM_SSID_ADDR, savedSsid, 64);
+
+  String ip = WiFi.status() == WL_CONNECTED ? WiFi.localIP().toString() : "";
+  String json = "{\"staEnabled\":" + String(hasCfg ? "true" : "false") +
+                ",\"connected\":" + String(WiFi.status() == WL_CONNECTED ? "true" : "false") +
+                ",\"ip\":\"" + ip + "\"" +
+                ",\"ssid\":\"" + String(savedSsid) + "\"}";
+  server.sendHeader("Access-Control-Allow-Origin", "*");
+  server.send(200, "application/json", json);
+}
+
+// POST /sta-connect  body: ssid=xxx&password=yyy
+void handleStaConnect() {
+  if (!server.hasArg("ssid")) { server.send(400, "text/plain", "missing ssid"); return; }
+  String newSsid = server.arg("ssid");
+  String newPass = server.arg("password");
+
+  eepromWriteStr(EEPROM_SSID_ADDR, newSsid.c_str(), 64);
+  eepromWriteStr(EEPROM_PASS_ADDR, newPass.c_str(), 64);
+  EEPROM.write(EEPROM_FLAG_ADDR, EEPROM_VALID_FLAG);
+  EEPROM.commit();
+
+  WiFi.begin(newSsid.c_str(), newPass.c_str());
+  server.sendHeader("Access-Control-Allow-Origin", "*");
+  server.send(200, "application/json", "{\"ok\":true}");
+}
+
+// POST /sta-forget  清除已保存凭据并断开 STA
+void handleStaForget() {
+  EEPROM.write(EEPROM_FLAG_ADDR, 0x00);
+  EEPROM.commit();
+  WiFi.disconnect(false);
+  server.sendHeader("Access-Control-Allow-Origin", "*");
+  server.send(200, "application/json", "{\"ok\":true}");
+}
+
 // ==================== 初始化 ====================
 void setup() {
-  Serial.begin(115200); // 与主控 MCU 通信的波特率
+  Serial.begin(115200);
   Serial.println();
 
-  // 配置 Wi-Fi AP
-  WiFi.softAP(ssid, password);
+  EEPROM.begin(EEPROM_SIZE);
+
+  // AP_STA 混合模式：始终开启热点，同时尝试连接已保存的 STA
+  WiFi.mode(WIFI_AP_STA);
+  WiFi.softAP(apSsid, apPassword);
+
+  if (EEPROM.read(EEPROM_FLAG_ADDR) == EEPROM_VALID_FLAG) {
+    char savedSsid[64] = {}, savedPass[64] = {};
+    eepromReadStr(EEPROM_SSID_ADDR, savedSsid, 64);
+    eepromReadStr(EEPROM_PASS_ADDR, savedPass, 64);
+    WiFi.begin(savedSsid, savedPass);
+    Serial.printf("正在连接 STA: %s\n", savedSsid);
+  }
 
   // 启动 HTTP 服务
   server.on("/", handleRoot);
+  server.on("/sta-status", HTTP_GET, handleStaStatus);
+  server.on("/sta-connect", HTTP_POST, handleStaConnect);
+  server.on("/sta-forget", HTTP_POST, handleStaForget);
   server.onNotFound(handleNotFound);
   server.begin();
 

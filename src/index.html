@@ -1,0 +1,3716 @@
+﻿<!-- 直接修改此文件，build时会自动重新生成index_html.h -->
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web 串口助手</title>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --primary-hover: #1d4ed8;
+            --primary-subtle: rgba(37, 99, 235, 0.08);
+            --bg-color: #f1f5f9;
+            --bg-subtle: #e8edf5;
+            --surface-color: #ffffff;
+            --surface-raised: #f8fafc;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --border-strong: #cbd5e1;
+            --success-color: #059669;
+            --success-bg: #d1fae5;
+            --danger-color: #dc2626;
+            --danger-bg: #fee2e2;
+            --input-bg: #ffffff;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.05);
+            --shadow-lg: 0 10px 24px rgba(0,0,0,0.10), 0 4px 8px rgba(0,0,0,0.06);
+            --terminal-bg: #1a1f2e;
+            --terminal-fg: #cdd6f4;
+            --scope-bg: #0f172a;
+            --topbar-height: 64px;
+        }
+
+        [data-theme="dark"] {
+            --primary-color: #60a5fa;
+            --primary-hover: #93c5fd;
+            --primary-subtle: rgba(96, 165, 250, 0.12);
+            --bg-color: #0b1120;
+            --bg-subtle: #111827;
+            --surface-color: #1a2236;
+            --surface-raised: #1e293b;
+            --text-main: #e2e8f0;
+            --text-muted: #94a3b8;
+            --border-color: #2a3244;
+            --border-strong: #3a4560;
+            --success-color: #34d399;
+            --success-bg: rgba(52, 211, 153, 0.12);
+            --danger-color: #f87171;
+            --danger-bg: rgba(248, 113, 113, 0.12);
+            --input-bg: #0b1120;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.35), 0 2px 6px rgba(0,0,0,0.25);
+            --shadow-lg: 0 10px 24px rgba(0,0,0,0.45), 0 4px 8px rgba(0,0,0,0.3);
+            --terminal-bg: #0d1117;
+            --terminal-fg: #cdd6f4;
+            --scope-bg: #060e1a;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* 滚动条美化 */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg-color);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--text-muted);
+            border-radius: 4px;
+            opacity: 0.5;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-main);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            height: 100vh;
+            overflow: hidden;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* 顶部导航栏 */
+        .top-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: var(--topbar-height);
+            background-color: var(--surface-color);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 24px;
+            box-shadow: var(--shadow-sm);
+            z-index: 1000;
+            transition: background-color 0.3s, border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .top-bar-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .top-bar h1 {
+            font-size: 1.25rem;
+            color: var(--text-main);
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            background-color: var(--danger-bg);
+            color: var(--danger-color);
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .status-badge.connected {
+            background-color: var(--success-bg);
+            color: var(--success-color);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: currentColor;
+        }
+
+        .top-bar-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .settings-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .settings-btn:hover {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+        }
+
+        /* 设置下拉面板 */
+        .settings-panel {
+            position: fixed;
+            top: calc(var(--topbar-height) + 10px);
+            right: 24px;
+            display: none;
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 20px;
+            gap: 16px;
+            flex-direction: column;
+            width: 340px;
+            box-shadow: var(--shadow-lg);
+            z-index: 1000;
+        }
+
+        .settings-panel.active {
+            display: flex;
+        }
+
+        .setting-group {
+            display: flex;
+            align-items: flex-start;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .setting-group label {
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .input-group {
+            display: flex;
+            width: 100%;
+            gap: 8px;
+        }
+
+        input[type="text"], input[type="number"], select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.2s, background-color 0.3s, color 0.3s, box-shadow 0.2s;
+            background-color: var(--input-bg);
+            color: var(--text-main);
+            color-scheme: light;
+        }
+
+        [data-theme="dark"] input[type="text"],
+        [data-theme="dark"] input[type="number"],
+        [data-theme="dark"] select {
+            color-scheme: dark;
+        }
+
+        /* 隐藏 number input 的 spinner */
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="number"] { appearance: textfield; }
+
+        input[type="text"]:focus, input[type="number"]:focus, select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px var(--primary-subtle);
+        }
+        
+        input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: var(--primary-color);
+        }
+
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            background-color: var(--primary-color);
+            color: white;
+            white-space: nowrap;
+        }
+
+        button:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        button:active {
+            transform: translateY(0);
+            box-shadow: none;
+        }
+
+        button:disabled {
+            background-color: var(--border-strong);
+            cursor: not-allowed;
+            opacity: 0.5;
+            transform: none;
+            box-shadow: none;
+        }
+
+        button.btn-danger { background-color: var(--danger-color); color: white; }
+        button.btn-danger:hover { background-color: #b91c1c; }
+        [data-theme="dark"] button.btn-danger { background-color: #7f1d1d; color: var(--danger-color); border: 1px solid var(--danger-color); }
+        [data-theme="dark"] button.btn-danger:hover { background-color: #991b1b; }
+        button.btn-secondary {
+            background-color: transparent;
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+        }
+        button.btn-secondary:hover { background-color: var(--bg-subtle); border-color: var(--border-strong); }
+
+        /* 可移动/调节大小的终端窗口 */
+        .workspace {
+            position: relative;
+            width: 100%;
+            height: calc(100vh - var(--topbar-height));
+            margin-top: var(--topbar-height);
+        }
+
+        .floating-window {
+            position: absolute;
+            top: 40px;
+            left: 50px;
+            width: 600px;
+            height: 450px;
+            min-width: 300px;
+            min-height: 180px;
+            max-width: 100vw;
+            max-height: calc(100vh - var(--topbar-height));
+            background-color: var(--surface-color);
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            flex-direction: column;
+            resize: both;
+            overflow: hidden;
+            z-index: 10;
+            transition: border-color 0.3s, background-color 0.3s, box-shadow 0.3s;
+        }
+
+        .window-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 16px;
+            background-color: var(--surface-raised);
+            border-bottom: 1px solid var(--border-color);
+            cursor: grab;
+            user-select: none;
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+
+        .header-right { display:flex; gap:12px; align-items:center; }
+
+        .window-header:active {
+            cursor: grabbing;
+        }
+
+        .window-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            pointer-events: none;
+        }
+
+        .window-controls {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+
+        .terminal-content {
+            flex: 1;
+            background-color: var(--terminal-bg);
+            color: var(--terminal-fg);
+            font-family: "Consolas", "Courier New", monospace;
+            padding: 16px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 14px;
+            line-height: 1.5;
+            box-shadow: inset 0 2px 6px rgba(0,0,0,0.15);
+            overflow-anchor: none;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        
+        .terminal-content div {
+            min-height: 21px; /* 统一行高防止抖动 */
+        }
+
+        .send-panel {
+            padding: 12px 16px;
+            border-top: 1px solid var(--border-color);
+            background-color: var(--surface-color);
+            display: flex;
+            gap: 12px;
+        }
+
+        /* 输入框清空按钮 */
+        .clear-input-btn {
+            position: absolute;
+            right: 8px;
+            top: 0;
+            height: 100%;
+            display: none; /* 由 JS 控制切换为 flex */
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-muted);
+            transition: color 0.2s, transform 0.2s;
+        }
+        .clear-input-btn:hover {
+            color: var(--danger-color);
+            transform: scale(1.15);
+        }
+
+        /* 右键菜单 */
+        .context-menu {
+            position: fixed;
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-shadow: var(--shadow-lg);
+            display: none;
+            flex-direction: column;
+            padding: 4px 0;
+            z-index: 2000;
+        }
+        .menu-item {
+            padding: 8px 16px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            color: var(--text-main);
+            min-width: 140px;
+            transition: background-color 0.15s, color 0.15s;
+        }
+        .menu-item:hover {
+            background-color: var(--primary-subtle);
+            color: var(--primary-color);
+        }
+        .menu-separator {
+            height: 1px;
+            background-color: var(--border-color);
+            margin: 4px 0;
+        }
+
+        /* 模态弹窗 */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(0, 0, 0, 0.45);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            z-index: 3000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .modal-overlay.active {
+            display: flex;
+            opacity: 1;
+        }
+        .modal {
+            background-color: var(--surface-color);
+            border-radius: 14px;
+            width: 480px;
+            max-width: 90vw;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+        .modal-header {
+            padding: 18px 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--surface-raised);
+        }
+        .modal-header h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+        .modal-content {
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--border-color);
+            background-color: var(--surface-raised);
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        /* 侧边栏与遮罩 */
+        .sidebar-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(0, 0, 0, 0.4);
+            z-index: 1050;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+        .sidebar-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .sidebar {
+            position: fixed;
+            top: 0; left: -320px;
+            width: 320px;
+            height: 100vh;
+            background-color: var(--surface-color);
+            z-index: 1100;
+            box-shadow: 6px 0 20px rgba(0,0,0,0.12);
+            transition: left 0.3s ease, background-color 0.3s;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--border-color);
+        }
+        .sidebar.active {
+            left: 0;
+        }
+        
+        .sidebar-header {
+            height: var(--topbar-height);
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .sidebar-content {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .component-category {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+            margin-top: 16px;
+            font-weight: 500;
+        }
+        .component-category:first-child {
+            margin-top: 0;
+        }
+
+        .component-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background-color: var(--bg-subtle);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
+            margin-bottom: 10px;
+        }
+        .component-item:hover {
+            border-color: var(--primary-color);
+            background-color: var(--primary-subtle);
+            box-shadow: var(--shadow-sm);
+        }
+        .component-item.disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .component-item.disabled:hover {
+            border-color: var(--border-color);
+            background-color: var(--bg-subtle);
+            box-shadow: none;
+        }
+
+        /* 参数调试组件样式 */
+        .param-list {
+            padding: 16px;
+            overflow-y: auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .param-item {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background-color: var(--surface-raised);
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+
+        .param-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+        
+        .param-val {
+            font-family: 'Consolas', monospace;
+            color: var(--primary-color);
+            background: var(--bg-subtle);
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            font-size: 0.9rem;
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+
+        .param-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .param-slider {
+            flex: 1;
+            accent-color: var(--primary-color);
+            height: 6px;
+            border-radius: 3px;
+        }
+
+        .param-btn {
+            background-color: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            line-height: 1;
+            transition: all 0.2s;
+        }
+
+        .param-btn:hover {
+            background-color: var(--primary-subtle);
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+            transform: none;
+            box-shadow: none;
+        }
+        
+        #paramConfigs {
+            max-height: 50vh;
+            overflow-y: auto;
+            padding-right: 8px;
+        }
+        
+        .cfg-item {
+            border: 1px solid var(--border-color);
+            padding: 12px;
+            border-radius: 8px;
+            background-color: var(--bg-subtle);
+            margin-bottom: 12px;
+            position: relative;
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+
+        .cfg-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            align-items: center;
+        }
+        
+        .cfg-header input.cfg-name {
+            font-weight: 600;
+            font-size: 1rem;
+            background: transparent;
+            border: 1px solid transparent;
+            width: 200px;
+            padding: 4px 8px;
+            color: var(--text-main);
+        }
+        .cfg-header input.cfg-name:focus {
+            background: var(--surface-color);
+            border: 1px solid var(--primary-color);
+            border-radius: 4px;
+        }
+
+        .cfg-delete-btn {
+            background: none;
+            border: none;
+            color: var(--danger-color);
+            cursor: pointer;
+            padding: 4px;
+            opacity: 0.7;
+            transform: none;
+            box-shadow: none;
+        }
+        .cfg-delete-btn:hover {
+            opacity: 1;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .cfg-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        /* 示波器组件样式 */
+        .scope-window {
+            min-width: 420px;
+            min-height: 280px;
+            background-color: var(--surface-color);
+        }
+
+        .scope-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 12px;
+            overflow: hidden;
+        }
+
+        .scope-plot {
+            position: relative;
+            flex: 1;
+            min-height: 180px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+            background: var(--scope-bg);
+            cursor: grab;
+            user-select: none;
+            touch-action: none;
+            transition: border-color 0.3s;
+        }
+
+        .scope-plot:active {
+            cursor: grabbing;
+        }
+
+        .scope-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .scope-hover-tooltip {
+            position: absolute;
+            left: 0;
+            top: 0;
+            transform: translate(-9999px, -9999px);
+            pointer-events: none;
+            z-index: 6;
+            background: rgba(15,23,42,0.96);
+            color: #e2e8f0;
+            border: 1px solid rgba(148,163,184,0.35);
+            border-radius: 8px;
+            padding: 6px 8px;
+            font-size: 12px;
+            line-height: 1.35;
+            white-space: nowrap;
+            box-shadow: 0 8px 18px rgba(0,0,0,0.25);
+            opacity: 0;
+            transition: opacity 0.08s ease;
+        }
+
+        .scope-hover-tooltip.active {
+            opacity: 1;
+        }
+
+        .scope-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .scope-history-slider {
+            width: 100%;
+            accent-color: var(--primary-color);
+        }
+
+        /* Custom slider appearance: show a filled segment representing visible window */
+        .scope-history-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 7px;
+            border-radius: 6px;
+            background: rgba(148,163,184,0.22);
+            border: 1px solid rgba(148,163,184,0.28);
+            outline: none;
+        }
+        .scope-history-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 999px;
+            background: transparent;
+            border: none;
+            margin-top: -5px;
+            box-shadow: none;
+        }
+        .scope-history-slider::-webkit-slider-runnable-track {
+            height: 7px;
+            border-radius: 6px;
+            background: transparent;
+        }
+        .scope-history-slider::-moz-range-track {
+            height: 7px;
+            border-radius: 6px;
+            background: transparent;
+            border: none;
+        }
+        .scope-history-slider::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 999px;
+            background: transparent;
+            border: none;
+            box-shadow: none;
+        }
+
+        .scope-auto-btn {
+            padding: 4px 12px;
+            font-size: 0.8rem;
+            border-radius: 999px;
+            flex-shrink: 0;
+        }
+
+        .scope-yscale-btn {
+            padding: 4px 8px;
+            font-size: 0.9rem;
+            border-radius: 6px;
+            flex-shrink: 0;
+            min-width: 34px;
+        }
+
+        .scope-yscale-auto {
+            padding: 4px 8px;
+            font-size: 0.8rem;
+            border-radius: 6px;
+            flex-shrink: 0;
+            min-width: 34px;
+        }
+
+        .scope-title-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            position: relative;
+            min-width: 0;
+        }
+
+        .scope-title-help {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            border-radius: 999px;
+            border: 1px solid rgba(100,116,139,0.35);
+            color: var(--text-muted);
+            font-size: 12px;
+            line-height: 1;
+            cursor: default;
+            background: rgba(255,255,255,0.04);
+            flex-shrink: 0;
+        }
+
+        .scope-title-help-panel {
+            position: absolute;
+            left: 0;
+            top: calc(100% + 10px);
+            width: min(420px, 70vw);
+            padding: 12px 14px;
+            border-radius: 10px;
+            border: 1px solid rgba(148,163,184,0.28);
+            background: rgba(15,23,42,0.98);
+            color: #e2e8f0;
+            box-shadow: 0 18px 30px rgba(0,0,0,0.28);
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-4px);
+            transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s ease;
+            pointer-events: none;
+            z-index: 40;
+        }
+
+        .scope-title-help:hover .scope-title-help-panel,
+        .scope-title-help:focus-within .scope-title-help-panel {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+
+        .scope-title-help-panel h4 {
+            margin-bottom: 8px;
+            font-size: 13px;
+            color: #f8fafc;
+        }
+
+        .scope-title-help-panel ul {
+            padding-left: 18px;
+            line-height: 1.55;
+            font-size: 12px;
+            color: #cbd5e1;
+        }
+
+        .scope-title-help-panel li + li {
+            margin-top: 6px;
+        }
+
+        /* Unified control button style inside scope header */
+        .scope-ctrl-btn {
+            padding: 6px 10px;
+            font-size: 0.85rem;
+            border-radius: 8px;
+            background-color: var(--bg-subtle);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+            transform: none;
+            box-shadow: none;
+        }
+        .scope-ctrl-btn:hover {
+            background-color: var(--primary-subtle);
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+            transform: none;
+            box-shadow: none;
+        }
+
+        .scope-clear-btn { background-color: var(--danger-bg); color: var(--danger-color); border-color: transparent; }
+        .scope-clear-btn:hover { background-color: var(--danger-bg); border-color: var(--danger-color); color: var(--danger-color); }
+
+        .scope-meta { display:flex; align-items:center; gap:12px; color:var(--text-muted); font-size:0.9rem; }
+        .scope-stats { color: var(--text-main); font-weight:600; font-size:0.9rem; }
+
+    </style>
+</head>
+<body>
+
+    <!-- 顶部导航栏 -->
+    <header class="top-bar">
+        <div class="top-bar-left">
+            <h1>Web 串口助手</h1>
+            <div id="statusBadge" class="status-badge">
+                <div class="status-dot"></div>
+                <span id="statusText">未连接</span>
+            </div>
+        </div>
+        <div class="top-bar-right">
+            <button id="btnAddToggle" class="settings-btn" title="添加组件">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            </button>
+            <button id="btnSettingsToggle" class="settings-btn" title="设置">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- 设置侧边栏 -->
+    <div id="settingsSidebar" class="sidebar">
+        <div class="sidebar-header">
+            设置
+        </div>
+        <div class="sidebar-content">
+            <div class="setting-group">
+                <label for="wsUrl">WebSocket连接地址</label>
+                <div class="input-group">
+                    <input type="text" id="wsUrl" placeholder="ws://192.168.4.1:81">
+                </div>
+                <div class="input-group" style="margin-top: 4px;">
+                    <button id="btnConnect" style="flex: 1;">连接</button>
+                    <button id="btnDisconnect" class="btn-danger" style="display: none; flex: 1;">断开</button>
+                </div>
+            </div>
+
+            <hr style="border:none; border-top:1px solid var(--border-color); margin: 16px 0;">
+
+            <div class="setting-group">
+                <label>局域网 WiFi 配置</label>
+                <div id="staStatus" style="font-size:0.85rem; color:var(--text-muted); margin-bottom:6px;">正在获取状态...</div>
+                <div class="input-group">
+                    <input type="text" id="staSsid" placeholder="WiFi 名称 (SSID)">
+                </div>
+                <div class="input-group" style="margin-top: 4px;">
+                    <input type="password" id="staPass" placeholder="WiFi 密码">
+                </div>
+                <div class="input-group" style="margin-top: 4px; gap: 4px;">
+                    <button id="btnStaConnect" style="flex: 1;">保存并连接</button>
+                    <button id="btnStaForget" class="btn-danger" style="flex: 1; display:none;">忘记</button>
+                </div>
+            </div>
+            
+            <hr style="border:none; border-top:1px solid var(--border-color); margin: 16px 0;">
+
+            <div class="setting-group">
+                <label for="themeSelect">主题颜色</label>
+                <select id="themeSelect">
+                    <option value="light">浅色 (白色)</option>
+                    <option value="dark">深色 (黑色)</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- 侧边栏及遮罩 -->
+    <div id="sidebarOverlay" class="sidebar-overlay"></div>
+    <div id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+            添加组件
+        </div>
+        <div class="sidebar-content">
+            <div class="component-item disabled" id="addTerminalBtn">
+                <span>串口终端</span>
+                <span class="status" style="font-size:0.8rem; color:var(--success-color);">已添加</span>
+            </div>
+            <div class="component-item" id="addParamBtn">
+                <span>参数调试</span>
+                <span class="status" style="font-size:0.8rem; color:var(--primary-color);">+ 添加</span>
+            </div>
+            <div class="component-item" id="addButtonBtn">
+                <span>自定义按钮</span>
+                <span class="status" style="font-size:0.8rem; color:var(--primary-color);">+ 添加</span>
+            </div>
+            <div class="component-item" id="addScopeBtn">
+                <span>示波器</span>
+                <span class="status" style="font-size:0.8rem; color:var(--primary-color);">+ 添加</span>
+            </div>
+
+            <div style="margin-top:auto; display:flex; gap:8px; flex-direction:column; padding-top:20px; border-top:1px solid var(--border-color);">
+                <button id="btnExportLayout" class="btn-secondary" style="padding:8px;">导出布局</button>
+                <label style="display:flex; gap:8px; align-items:center;">
+                    <button id="btnImportLayout" class="btn-secondary" style="padding:8px; flex:1;">导入布局</button>
+                    <input id="importLayoutFile" type="file" accept="application/json" style="display:none;">
+                </label>
+                <button id="btnClearLayout" class="btn-secondary" style="padding:8px; color:var(--danger-color); border-color:var(--danger-color);">清除布局</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 工作区 -->
+    <div class="workspace">
+        <!-- 可移动/调整大小的终端窗口 -->
+        <div id="terminalWindow" class="floating-window">
+            <div class="window-header" id="windowHeader">
+                <span class="window-title">串口终端</span>
+                <div class="window-controls">
+                    <label class="checkbox-group">
+                        <input type="checkbox" id="autoScroll" checked> 自动滚动
+                    </label>
+                    <button id="btnClear" class="btn-secondary" style="padding: 4px 8px; font-size: 0.8rem;">清空</button>
+                </div>
+            </div>
+            <div id="terminal" class="terminal-content"></div>
+            <div class="send-panel">
+                <div class="input-group" style="position: relative;">
+                    <input type="text" id="sendData" placeholder="输入要发送的数据..." disabled style="padding-right: 32px;">
+                    <span id="btnClearInput" class="clear-input-btn" title="清空输入">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            <line x1="10" y1="11" x2="10" y2="17"></line>
+                            <line x1="14" y1="11" x2="14" y2="17"></line>
+                        </svg>
+                    </span>
+                </div>
+                <button id="btnSend" disabled>发送</button>
+            </div>
+        </div>
+
+        <!-- <div id="paramWindow" ...> 被动态生成替代了 -->
+    </div>
+
+    <!-- 右键菜单 -->
+    <div id="contextMenu" class="context-menu">
+        <div class="menu-item" id="menuFillH">横向填充</div>
+        <div class="menu-item" id="menuFillV">纵向填充</div>
+        <div class="menu-item" id="menuFillAll">全屏</div>
+        <div class="menu-separator" id="menuSep1"></div>
+        <div class="menu-item" id="menuLockState">锁定组件</div>
+        
+        <div class="menu-item" id="menuMoveButton" style="display:none;">调整位置</div>
+        <div class="menu-item" id="menuResizeButton" style="display:none;">调整大小</div>
+        <div class="menu-item" id="menuConfirmResize" style="display:none; color: var(--primary-color);">确定调整</div>
+        
+        <div class="menu-item" id="menuSettings">组件设置</div>
+        <div class="menu-separator" id="menuSep2"></div>
+        <div class="menu-item" id="menuDelete" style="color: var(--danger-color);">删除组件</div>
+    </div>
+
+    <!-- 组件设置弹窗 -->
+    <div id="componentSettingsModal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>串口终端 设置</h3>
+                <button id="btnCloseModal" class="settings-btn" style="padding: 4px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <div class="modal-content">
+                <div class="setting-group" style="flex-direction: row; justify-content: space-between; align-items: center;">
+                    <label for="modalAutoScroll">自动滚动</label>
+                    <input type="checkbox" id="modalAutoScroll" checked>
+                </div>
+                <div class="setting-group">
+                    <label for="maxLines">保留的串口信息条数</label>
+                    <input type="number" id="maxLines" value="1000" min="100" max="10000">
+                </div>
+                <div class="setting-group">
+                    <label for="displayMode">显示方式</label>
+                    <select id="displayMode">
+                        <option value="string">字符串</option>
+                        <option value="hex">十六进制</option>
+                    </select>
+                </div>
+                <div class="setting-group">
+                    <label for="fontSize">终端字体大小 (px)</label>
+                    <input type="number" id="fontSize" value="14" min="8" max="48">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="btnSaveComponentSettings" style="width: 100%;">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 参数调试设置弹窗 -->
+    <div id="paramSettingsModal" class="modal-overlay">
+        <div class="modal" style="width: 600px; max-height: 90vh;">
+            <div class="modal-header">
+                <h3>参数调试 设置</h3>
+                <button id="btnCloseParamModal" class="settings-btn" style="padding: 4px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <div class="modal-content" style="flex: 1; overflow: hidden; padding-bottom: 0;">
+                <div class="setting-group" style="margin-bottom: 12px;">
+                    <label for="paramWindowTitle" style="font-weight: 600;">组件标题</label>
+                    <input type="text" id="paramWindowTitle" value="参数调试" style="padding: 8px;">
+                </div>
+                <div class="setting-group checkbox-group" style="margin-bottom: 16px;">
+                    <input type="checkbox" id="paramSendOnRelease" checked>
+                    <label for="paramSendOnRelease">松开滑条后才发送指令 (关闭则滑动时实时发送)</label>
+                </div>
+                <div class="setting-group" style="margin-bottom: 16px;">
+                    <label for="globalParamCmd" style="font-weight: 600;">总体调试指令模板</label>
+                    <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px;">例如: <code>PID {V1} {V2} {V3}</code>，其中参数1的值会自动替换<code>{V1}</code></div>
+                    <input type="text" id="globalParamCmd" value="CMD {V1}" style="padding: 8px;">
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-top: 1px solid var(--border-color); padding-top: 16px;">
+                    <div style="font-weight: 600;">参数列表</div>
+                    <button id="btnAddParamConfig" class="btn-secondary" style="padding: 4px 12px; font-size: 0.85rem;">+ 添加参数</button>
+                </div>
+                <!-- 动态生成的参数配置区域 -->
+                <div id="paramConfigs"></div>
+            </div>
+            <div class="modal-footer">
+                <button id="btnSaveParamSettings" style="width: 100%;">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 按钮组件设置弹窗 -->
+    <div id="buttonSettingsModal" class="modal-overlay">
+        <div class="modal" style="width: 480px;">
+            <div class="modal-header">
+                <h3>按钮组件 设置</h3>
+                <button id="btnCloseButtonModal" class="settings-btn" style="padding: 4px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <div class="modal-content">
+                <div class="setting-group">
+                    <label for="btnDisplayTxt">按钮显示内容</label>
+                    <input type="text" id="btnDisplayTxt" value="点击发送">
+                </div>
+                <div class="setting-group">
+                    <label for="btnCmdTxt">按下发送的指令</label>
+                    <input type="text" id="btnCmdTxt" value="COMMAND">
+                </div>
+                
+                <div class="cfg-grid" style="margin-top: 8px;">
+                    <div class="setting-group">
+                        <label for="btnWidth">按钮宽度 (px)</label>
+                        <input type="number" id="btnWidth" placeholder="例：120">
+                    </div>
+                    <div class="setting-group">
+                        <label for="btnHeight">按钮高度 (px)</label>
+                        <input type="number" id="btnHeight" placeholder="例：44">
+                    </div>
+                    <div class="setting-group">
+                        <label for="btnPosX">X 坐标 (px)</label>
+                        <input type="number" id="btnPosX" placeholder="例：150">
+                    </div>
+                    <div class="setting-group">
+                        <label for="btnPosY">Y 坐标 (px)</label>
+                        <input type="number" id="btnPosY" placeholder="例：150">
+                    </div>
+                </div>
+                <div class="setting-group">
+                    <label for="btnFontSize">按钮字体大小 (rem 或 px)</label>
+                    <input type="text" id="btnFontSize" placeholder="例如：1rem 或 16px">
+                </div>
+
+                <div class="setting-group checkbox-group" style="margin-top: 8px;">
+                    <input type="checkbox" id="btnDisableOnClick">
+                    <label for="btnDisableOnClick">按下后禁用按钮</label>
+                </div>
+                
+                <div id="btnReenableContainer" style="display: none; background-color: var(--bg-color); padding: 12px; border-radius: 6px; border: 1px solid var(--border-color); flex-direction: column; gap: 12px;">
+                    <div class="setting-group">
+                        <label for="btnReenableCond">恢复可用条件</label>
+                        <select id="btnReenableCond">
+                            <option value="none">无(手动点击解锁/不自动恢复)</option>
+                            <option value="delay">等待延时时间</option>
+                            <option value="receive">串口收到指定命令</option>
+                        </select>
+                    </div>
+                    <div class="setting-group" id="btnDelayContainer" style="display: none;">
+                        <label for="btnDelayMs">延时时间 (毫秒)</label>
+                        <input type="number" id="btnDelayMs" value="1000" min="0">
+                    </div>
+                    <div class="setting-group" id="btnRecvContainer" style="display: none;">
+                        <label for="btnReceiveCmd">要收到的命令 (包含匹配)</label>
+                        <input type="text" id="btnReceiveCmd" value="OK">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="btnSaveButtonSettings" style="width: 100%;">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 示波器组件设置弹窗 -->
+    <div id="scopeSettingsModal" class="modal-overlay">
+        <div class="modal" style="width: 520px;">
+            <div class="modal-header">
+                <h3>示波器 设置</h3>
+                <button id="btnCloseScopeModal" class="settings-btn" style="padding: 4px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <div class="modal-content">
+                <div class="cfg-grid">
+                    <div class="setting-group">
+                        <label for="scopePosX">X 坐标 (px)</label>
+                        <input type="number" id="scopePosX" placeholder="例：120">
+                    </div>
+                    <div class="setting-group">
+                        <label for="scopePosY">Y 坐标 (px)</label>
+                        <input type="number" id="scopePosY" placeholder="例：120">
+                    </div>
+                    <div class="setting-group">
+                        <label for="scopeWidth">宽度 (px)</label>
+                        <input type="number" id="scopeWidth" placeholder="例：760">
+                    </div>
+                    <div class="setting-group">
+                        <label for="scopeHeight">高度 (px)</label>
+                        <input type="number" id="scopeHeight" placeholder="例：360">
+                    </div>
+                </div>
+                <div class="setting-group">
+                    <label for="scopeSamplePoints">保存的采样点数量</label>
+                    <input type="number" id="scopeSamplePoints" min="100" max="5000" value="1000">
+                </div>
+                <div class="setting-group checkbox-group" style="margin-top: 8px;">
+                    <input type="checkbox" id="scopeShowSampleMarkers" checked>
+                    <label for="scopeShowSampleMarkers">样本点可视化（显示圆点）</label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="btnSaveScopeSettings" style="width: 100%;">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const wsUrlInput = document.getElementById('wsUrl');
+        const btnConnect = document.getElementById('btnConnect');
+        const btnDisconnect = document.getElementById('btnDisconnect');
+        const statusBadge = document.getElementById('statusBadge');
+        const statusText = document.getElementById('statusText');
+        const terminal = document.getElementById('terminal');
+        const btnClear = document.getElementById('btnClear');
+        const autoScrollCheckbox = document.getElementById('autoScroll');
+        const sendDataInput = document.getElementById('sendData');
+        const btnClearInput = document.getElementById('btnClearInput');
+        const btnSend = document.getElementById('btnSend');
+        const btnSettingsToggle = document.getElementById('btnSettingsToggle');
+        const settingsSidebar = document.getElementById('settingsSidebar');
+        const themeSelect = document.getElementById('themeSelect');
+
+        let ws = null;
+
+        // 根据当前访问页面的 host 自动填充 WS 地址
+        (function () {
+            const host = window.location.hostname || '192.168.4.1';
+            wsUrlInput.value = 'ws://' + host + ':81';
+        })();
+
+        // --- WiFi STA 配置 ---
+        const staStatus = document.getElementById('staStatus');
+        const staSsid = document.getElementById('staSsid');
+        const staPass = document.getElementById('staPass');
+        const btnStaConnect = document.getElementById('btnStaConnect');
+        const btnStaForget = document.getElementById('btnStaForget');
+
+        function refreshStaStatus() {
+            fetch('/sta-status').then(r => r.json()).then(d => {
+                if (d.connected) {
+                    staStatus.style.color = 'var(--success-color)';
+                    staStatus.textContent = '已连接：' + d.ssid + '（' + d.ip + '）';
+                    staSsid.value = d.ssid;
+                    btnStaForget.style.display = 'inline-flex';
+                } else if (d.staEnabled) {
+                    staStatus.style.color = 'var(--text-muted)';
+                    staStatus.textContent = '正在连接：' + d.ssid + '（未获取到 IP）';
+                    staSsid.value = d.ssid;
+                    btnStaForget.style.display = 'inline-flex';
+                } else {
+                    staStatus.style.color = 'var(--text-muted)';
+                    staStatus.textContent = '未配置，仅热点模式';
+                    btnStaForget.style.display = 'none';
+                }
+            }).catch(() => {
+                staStatus.textContent = '无法获取状态';
+            });
+        }
+
+        btnStaConnect.addEventListener('click', () => {
+            const s = staSsid.value.trim();
+            if (!s) { alert('请输入 WiFi 名称'); return; }
+            const body = new URLSearchParams({ ssid: s, password: staPass.value });
+            btnStaConnect.disabled = true;
+            fetch('/sta-connect', { method: 'POST', body }).then(r => r.json()).then(() => {
+                staStatus.style.color = 'var(--text-muted)';
+                staStatus.textContent = '正在连接，约 10 秒后可查看状态…';
+                setTimeout(refreshStaStatus, 10000);
+            }).catch(() => {
+                staStatus.textContent = '请求失败';
+            }).finally(() => { btnStaConnect.disabled = false; });
+        });
+
+        btnStaForget.addEventListener('click', () => {
+            fetch('/sta-forget', { method: 'POST' }).then(() => {
+                staSsid.value = '';
+                staPass.value = '';
+                refreshStaStatus();
+            });
+        });
+
+        // 打开设置面板时刷新状态
+        document.getElementById('btnSettingsToggle') && document.getElementById('btnSettingsToggle').addEventListener('click', refreshStaStatus);
+
+        // --- Settings / Theme Toggle ---
+        let maxTerminalLines = 1000;
+        let displayModeHex = false;
+        let terminalFontSize = 14;
+
+        function toggleSettingsSidebar() {
+            settingsSidebar.classList.toggle('active');
+            sidebarOverlay.classList.toggle('active');
+        }
+
+        btnSettingsToggle.addEventListener('click', toggleSettingsSidebar);
+
+        themeSelect.addEventListener('change', (e) => {
+            document.documentElement.setAttribute('data-theme', e.target.value);
+        });
+
+        // --- Sidebar Logic ---
+        const btnAddToggle = document.getElementById('btnAddToggle');
+        const sidebar = document.getElementById('sidebar');
+        sidebarOverlay = document.getElementById('sidebarOverlay');
+        const workspace = document.querySelector('.workspace');
+
+        // Bring a window to the front by assigning it a z-index larger than any
+        // existing `.floating-window` elements. New components should call this
+        // after being appended to the workspace so they appear on top by default.
+        function bringToFront(win) {
+            if (!win) return;
+            const all = Array.from(document.querySelectorAll('.floating-window'));
+            let maxZ = 0;
+            all.forEach(el => {
+                const z = parseInt(window.getComputedStyle(el).zIndex, 10);
+                if (!isNaN(z) && z > maxZ) maxZ = z;
+            });
+            win.style.zIndex = String(maxZ + 1);
+        }
+        function toggleSidebar() {
+            sidebar.classList.toggle('active');
+            sidebarOverlay.classList.toggle('active');
+        }
+
+        btnAddToggle.addEventListener('click', toggleSidebar);
+        let _overlayMouseDownTarget = null;
+        sidebarOverlay.addEventListener('mousedown', (e) => { _overlayMouseDownTarget = e.target; });
+        sidebarOverlay.addEventListener('mouseup', (e) => {
+            if (e.target !== sidebarOverlay || _overlayMouseDownTarget !== sidebarOverlay) return;
+            if (sidebar.classList.contains('active')) toggleSidebar();
+            if (settingsSidebar.classList.contains('active')) toggleSettingsSidebar();
+        });
+
+        // --- Component Status logic ---
+        const addTerminalBtn = document.getElementById('addTerminalBtn');
+
+        addTerminalBtn.addEventListener('click', () => {
+            if (addTerminalBtn.classList.contains('disabled')) return;
+            document.getElementById('terminalWindow').style.display = 'flex';
+            // Ensure terminal window is on top when shown
+            bringToFront(terminalWindow);
+            addTerminalBtn.classList.add('disabled');
+            addTerminalBtn.querySelector('.status').textContent = '已添加';
+            addTerminalBtn.querySelector('.status').style.color = 'var(--success-color)';
+            saveLayoutToLocal();
+        });
+
+        // 参数添加按钮的逻辑被后面覆盖，先注释掉原来的：
+        /*
+        const addParamBtn = document.getElementById('addParamBtn');
+        const paramWindow = document.getElementById('paramWindow');
+        addParamBtn.addEventListener('click', () => {
+            if (addParamBtn.classList.contains('disabled')) return;
+            paramWindow.style.display = 'flex';
+            addParamBtn.classList.add('disabled');
+            addParamBtn.querySelector('.status').textContent = '已添加';
+            addParamBtn.querySelector('.status').style.color = 'var(--success-color)';
+        });
+        */
+        
+        // --- Window Dragging Logic ---
+        const terminalWindow = document.getElementById('terminalWindow');
+        const windowHeader = document.getElementById('windowHeader');
+        // const paramWindowHeader = document.getElementById('paramWindowHeader');
+        
+        let isDragging = false, startX, startY, startLeft, startTop, activeWindow = null;
+
+        function initDraggable(header, win) {
+            header.addEventListener('mousedown', (e) => {
+                if (e.target.tagName.toLowerCase() === 'button' || e.target.tagName.toLowerCase() === 'input' || e.target.tagName.toLowerCase() === 'label') {
+                    return;
+                }
+                if (win.dataset.locked === 'true') {
+                    return; // 锁定状态不可拖动
+                }
+
+                isDragging = true;
+                activeWindow = win;
+                
+                // 将当前窗口置于顶层
+                document.querySelectorAll('.floating-window').forEach(w => w.style.zIndex = '10');
+                win.style.zIndex = '11';
+
+                startX = e.clientX;
+                startY = e.clientY;
+                startLeft = win.offsetLeft;
+                startTop = win.offsetTop;
+                
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+            });
+
+            const resizeObserver = new ResizeObserver(() => {
+                const rect = win.getBoundingClientRect();
+                const maxX = window.innerWidth - rect.width;
+                const maxY = window.innerHeight - rect.height;
+                
+                let newLeft = win.offsetLeft;
+                let newTop = win.offsetTop;
+
+                let changed = false;
+                if (newLeft > maxX && maxX > 0) { newLeft = maxX; changed = true; }
+                if (newTop > maxY && maxY > 0) { newTop = maxY; changed = true; }
+
+                if (changed) {
+                    win.style.left = `${newLeft}px`;
+                    win.style.top = `${newTop}px`;
+                }
+            });
+            // observe once appended to dom or here (it's already in DOM for terminal window)
+            resizeObserver.observe(win);
+        }
+
+        initDraggable(windowHeader, terminalWindow);
+        // initDraggable(paramWindowHeader, paramWindow);
+
+        function onMouseMove(e) {
+            if (!isDragging || !activeWindow) return;
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+            
+            let newLeft = startLeft + dx;
+            let newTop = startTop + dy;
+
+            // 边界限制
+            const maxX = window.innerWidth - activeWindow.offsetWidth;
+            const maxY = window.innerHeight - activeWindow.offsetHeight - 64; 
+
+            if (newLeft < 0) newLeft = 0;
+            if (newLeft > maxX) newLeft = maxX;
+            if (newTop < 0) newTop = 0;
+            if (newTop > maxY) newTop = maxY;
+
+            activeWindow.style.left = `${newLeft}px`;
+            activeWindow.style.top = `${newTop}px`;
+        }
+
+        function onMouseUp() {
+            if (!isDragging) return;
+            isDragging = false;
+            activeWindow = null;
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+            saveLayoutToLocal();
+        }
+
+        // --- Context Menu Logic ---
+        const contextMenu = document.getElementById('contextMenu');
+        let currentContextMenuWindow = null;
+        let isButtonMoving = false;
+        let movingButtonWin = null;
+        
+        function initContextMenu(win) {
+            win.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                if (isButtonMoving) return;
+                
+                currentContextMenuWindow = win;
+                const isBtn = win.id.startsWith('btn_win_');
+                
+                // 控制不适用的菜单项
+                document.getElementById('menuFillH').style.display = isBtn ? 'none' : 'block';
+                document.getElementById('menuFillV').style.display = isBtn ? 'none' : 'block';
+                document.getElementById('menuFillAll').style.display = isBtn ? 'none' : 'block';
+                document.getElementById('menuSep1').style.display = isBtn ? 'none' : 'block';
+                document.getElementById('menuLockState').style.display = isBtn ? 'none' : 'block';
+                
+                if (isBtn) {
+                    if (win.dataset.resizing === 'true') {
+                        document.getElementById('menuMoveButton').style.display = 'none';
+                        document.getElementById('menuResizeButton').style.display = 'none';
+                        document.getElementById('menuSettings').style.display = 'none';
+                        document.getElementById('menuDelete').style.display = 'none';
+                        document.getElementById('menuSep2').style.display = 'none';
+                        document.getElementById('menuConfirmResize').style.display = 'block';
+                    } else {
+                        document.getElementById('menuMoveButton').style.display = 'block';
+                        document.getElementById('menuResizeButton').style.display = 'block';
+                        document.getElementById('menuSettings').style.display = 'block';
+                        document.getElementById('menuDelete').style.display = 'block';
+                        document.getElementById('menuSep2').style.display = 'block';
+                        document.getElementById('menuConfirmResize').style.display = 'none';
+                    }
+                } else {
+                    document.getElementById('menuMoveButton').style.display = 'none';
+                    document.getElementById('menuResizeButton').style.display = 'none';
+                    document.getElementById('menuConfirmResize').style.display = 'none';
+                    document.getElementById('menuSettings').style.display = 'block';
+                    document.getElementById('menuDelete').style.display = 'block';
+                    document.getElementById('menuSep2').style.display = 'block';
+                    
+                    const lockBtn = document.getElementById('menuLockState');
+                    if (win.dataset.locked === 'true') {
+                        lockBtn.textContent = '解锁组件';
+                    } else {
+                        lockBtn.textContent = '锁定组件';
+                    }
+                }
+
+                contextMenu.style.display = 'flex';
+                
+                let menuX = e.clientX;
+                let menuY = e.clientY;
+                
+                if (menuX + 150 > window.innerWidth) menuX = window.innerWidth - 150;
+                if (menuY + 160 > window.innerHeight) menuY = window.innerHeight - 160;
+                
+                contextMenu.style.left = `${menuX}px`;
+                contextMenu.style.top = `${menuY}px`;
+            });
+        }
+        
+        initContextMenu(terminalWindow);
+        // initContextMenu(paramWindow);
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#contextMenu')) {
+                contextMenu.style.display = 'none';
+            }
+        });
+
+        document.getElementById('menuFillH').addEventListener('click', () => {
+            if(currentContextMenuWindow && currentContextMenuWindow.dataset.locked !== 'true') {
+                currentContextMenuWindow.style.left = '0px';
+                currentContextMenuWindow.style.width = '100vw';
+            }
+            contextMenu.style.display = 'none';
+        });
+
+        document.getElementById('menuFillV').addEventListener('click', () => {
+            if(currentContextMenuWindow && currentContextMenuWindow.dataset.locked !== 'true') {
+                currentContextMenuWindow.style.top = '0px';
+                currentContextMenuWindow.style.height = `calc(100vh - 64px)`;
+            }
+            contextMenu.style.display = 'none';
+        });
+
+        document.getElementById('menuFillAll').addEventListener('click', () => {
+            if(currentContextMenuWindow && currentContextMenuWindow.dataset.locked !== 'true') {
+                currentContextMenuWindow.style.left = '0px';
+                currentContextMenuWindow.style.top = '0px';
+                currentContextMenuWindow.style.width = '100vw';
+                currentContextMenuWindow.style.height = `calc(100vh - 64px)`;
+            }
+            contextMenu.style.display = 'none';
+        });
+
+        document.getElementById('menuLockState').addEventListener('click', () => {
+            if (currentContextMenuWindow) {
+                if (currentContextMenuWindow.dataset.locked === 'true') {
+                    currentContextMenuWindow.dataset.locked = 'false';
+                    currentContextMenuWindow.style.resize = 'both';
+                    currentContextMenuWindow.querySelector('.window-header').style.cursor = 'grab';
+                } else {
+                    currentContextMenuWindow.dataset.locked = 'true';
+                    currentContextMenuWindow.style.resize = 'none';
+                    currentContextMenuWindow.querySelector('.window-header').style.cursor = 'default';
+                }
+                saveLayoutToLocal();
+            }
+            contextMenu.style.display = 'none';
+        });
+
+        function onButtonMove(e) {
+            if (!isButtonMoving || !movingButtonWin) return;
+            const rect = workspaceEl.getBoundingClientRect();
+            const w = movingButtonWin.offsetWidth;
+            const h = movingButtonWin.offsetHeight;
+            let newLeft = e.clientX - rect.left - w / 2;
+            let newTop = e.clientY - rect.top - h / 2;
+            newLeft = Math.max(0, Math.min(newLeft, rect.width - w));
+            newTop = Math.max(0, Math.min(newTop, rect.height - h));
+            movingButtonWin.style.left = newLeft + 'px';
+            movingButtonWin.style.top = newTop + 'px';
+        }
+
+        function onButtonMoveEnd(e) {
+            if (e.button === 0 && isButtonMoving) {
+                isButtonMoving = false;
+                document.removeEventListener('mousemove', onButtonMove);
+                document.removeEventListener('mousedown', onButtonMoveEnd);
+                
+                if (movingButtonWin) {
+                    movingButtonWin.style.pointerEvents = 'auto';
+                    const btn = movingButtonWin.querySelector('button');
+                    if (btn) btn.style.pointerEvents = 'auto'; // allow clicks again
+                    // check logical disabled State
+                    let btnIdx = buttonManager.instances.findIndex(inst => inst.win === movingButtonWin);
+                    if (btnIdx !== -1) {
+                        let inst = buttonManager.instances[btnIdx];
+                        if (inst.win.dataset.disabled !== "true") {
+                            btn.disabled = false;
+                        }
+                    }
+                }
+                movingButtonWin = null;
+                saveLayoutToLocal();
+            }
+        }
+
+        document.getElementById('menuMoveButton').addEventListener('click', () => {
+            contextMenu.style.display = 'none';
+            if (!currentContextMenuWindow) return;
+            isButtonMoving = true;
+            movingButtonWin = currentContextMenuWindow;
+            
+            movingButtonWin.style.pointerEvents = 'none'; // prevent hover/click states while moving
+            
+            document.addEventListener('mousemove', onButtonMove);
+            document.addEventListener('mousedown', onButtonMoveEnd);
+        });
+
+        document.getElementById('menuResizeButton').addEventListener('click', () => {
+            contextMenu.style.display = 'none';
+            if (!currentContextMenuWindow) return;
+            currentContextMenuWindow.dataset.resizing = 'true';
+            currentContextMenuWindow.style.resize = 'both';
+            currentContextMenuWindow.style.overflow = 'hidden';
+            currentContextMenuWindow.style.border = '2px dashed var(--primary-color)';
+            
+            const btn = currentContextMenuWindow.querySelector('button');
+            if (btn) btn.style.pointerEvents = 'none';
+        });
+
+        document.getElementById('menuConfirmResize').addEventListener('click', () => {
+            contextMenu.style.display = 'none';
+            if (!currentContextMenuWindow) return;
+            currentContextMenuWindow.dataset.resizing = 'false';
+            currentContextMenuWindow.style.resize = 'none';
+            currentContextMenuWindow.style.border = 'none';
+            currentContextMenuWindow.style.overflow = 'visible';
+            
+            const btn = currentContextMenuWindow.querySelector('button');
+            if (btn) btn.style.pointerEvents = 'auto';
+            saveLayoutToLocal();
+        });
+
+        document.getElementById('menuDelete').addEventListener('click', () => {
+            contextMenu.style.display = 'none';
+            if(currentContextMenuWindow === terminalWindow) {
+                terminalWindow.style.display = 'none';
+                addTerminalBtn.classList.remove('disabled');
+                addTerminalBtn.querySelector('.status').textContent = '未添加';
+                addTerminalBtn.querySelector('.status').style.color = 'var(--text-muted)';
+            } else {
+                if (scopeManager.instance && scopeManager.instance.win === currentContextMenuWindow) {
+                    if (scopeManager.instance._resizeObserver) scopeManager.instance._resizeObserver.disconnect();
+                    if (scopeManager.instance._saveTimer) clearTimeout(scopeManager.instance._saveTimer);
+                    if (scopeManager.instance.win && scopeManager.instance.win.parentNode) {
+                        scopeManager.instance.win.parentNode.removeChild(scopeManager.instance.win);
+                    }
+                    scopeManager.instance = null;
+                    updateScopeButtonState(false);
+                } else {
+                let idx = paramManager.instances.findIndex(inst => inst.win === currentContextMenuWindow);
+                if (idx !== -1) {
+                    workspaceEl.removeChild(currentContextMenuWindow);
+                    paramManager.instances.splice(idx, 1);
+                } else {
+                    let btnIdx = buttonManager.instances.findIndex(inst => inst.win === currentContextMenuWindow);
+                    if (btnIdx !== -1) {
+                        workspaceEl.removeChild(currentContextMenuWindow);
+                        if (buttonManager.instances[btnIdx]._timer) {
+                            clearInterval(buttonManager.instances[btnIdx]._timer);
+                        }
+                        buttonManager.instances.splice(btnIdx, 1);
+                    }
+                }
+                }
+            }
+            saveLayoutToLocal();
+        });
+
+        // --- Component Settings Modal Logic ---
+        const modalOverlay = document.getElementById('componentSettingsModal');
+        const paramModalOverlay = document.getElementById('paramSettingsModal');
+        const buttonSettingsModal = document.getElementById('buttonSettingsModal');
+        const scopeSettingsModal = document.getElementById('scopeSettingsModal');
+        const btnCloseModal = document.getElementById('btnCloseModal');
+        const btnCloseParamModal = document.getElementById('btnCloseParamModal');
+        const btnCloseButtonModal = document.getElementById('btnCloseButtonModal');
+        const btnCloseScopeModal = document.getElementById('btnCloseScopeModal');
+        const btnSaveComponentSettings = document.getElementById('btnSaveComponentSettings');
+        const btnSaveScopeSettings = document.getElementById('btnSaveScopeSettings');
+        const modalAutoScroll = document.getElementById('modalAutoScroll');
+        const modalMaxLines = document.getElementById('maxLines');
+        const modalDisplayMode = document.getElementById('displayMode');
+        const modalFontSize = document.getElementById('fontSize');
+
+        document.getElementById('menuSettings').addEventListener('click', () => {
+            contextMenu.style.display = 'none';
+            if (currentContextMenuWindow === terminalWindow) {
+                // Sync values to modal
+                modalAutoScroll.checked = autoScrollCheckbox.checked;
+                modalMaxLines.value = maxTerminalLines;
+                modalDisplayMode.value = displayModeHex ? 'hex' : 'string';
+                modalFontSize.value = terminalFontSize;
+                
+                modalOverlay.classList.add('active');
+            } else {
+                if (scopeManager.instance && scopeManager.instance.win === currentContextMenuWindow) {
+                    currentEditingScopeInst = scopeManager.instance;
+                    renderScopeSettingsModal();
+                    scopeSettingsModal.classList.add('active');
+                } else {
+                let idx = paramManager.instances.findIndex(inst => inst.win === currentContextMenuWindow);
+                if (idx !== -1) {
+                    currentEditingInst = paramManager.instances[idx];
+                    renderParamConfigList();
+                    paramModalOverlay.classList.add('active');
+                } else {
+                    let btnIdx = buttonManager.instances.findIndex(inst => inst.win === currentContextMenuWindow);
+                    if (btnIdx !== -1) {
+                        currentEditingBtnInst = buttonManager.instances[btnIdx];
+                        renderButtonSettingsModal();
+                        buttonSettingsModal.classList.add('active');
+                    }
+                }
+                }
+            }
+        });
+
+        const closeModal = () => modalOverlay.classList.remove('active');
+        const closeParamModal = () => paramModalOverlay.classList.remove('active');
+        const closeButtonModal = () => buttonSettingsModal.classList.remove('active');
+        const closeScopeModal = () => scopeSettingsModal.classList.remove('active');
+        btnCloseModal.addEventListener('click', closeModal);
+        btnCloseParamModal.addEventListener('click', closeParamModal);
+        btnCloseButtonModal.addEventListener('click', closeButtonModal);
+        btnCloseScopeModal.addEventListener('click', closeScopeModal);
+        
+        let _modalMouseDownTarget = null;
+        modalOverlay.addEventListener('mousedown', (e) => { _modalMouseDownTarget = e.target; });
+        modalOverlay.addEventListener('mouseup', (e) => {
+            if (e.target === modalOverlay && _modalMouseDownTarget === modalOverlay) closeModal();
+        });
+        paramModalOverlay.addEventListener('mousedown', (e) => { _modalMouseDownTarget = e.target; });
+        paramModalOverlay.addEventListener('mouseup', (e) => {
+            if (e.target === paramModalOverlay && _modalMouseDownTarget === paramModalOverlay) closeParamModal();
+        });
+        buttonSettingsModal.addEventListener('mousedown', (e) => { _modalMouseDownTarget = e.target; });
+        buttonSettingsModal.addEventListener('mouseup', (e) => {
+            if (e.target === buttonSettingsModal && _modalMouseDownTarget === buttonSettingsModal) closeButtonModal();
+        });
+        scopeSettingsModal.addEventListener('mousedown', (e) => { _modalMouseDownTarget = e.target; });
+        scopeSettingsModal.addEventListener('mouseup', (e) => {
+            if (e.target === scopeSettingsModal && _modalMouseDownTarget === scopeSettingsModal) closeScopeModal();
+        });
+
+        btnSaveComponentSettings.addEventListener('click', () => {
+            autoScrollCheckbox.checked = modalAutoScroll.checked;
+            maxTerminalLines = parseInt(modalMaxLines.value, 10) || 1000;
+            displayModeHex = modalDisplayMode.value === 'hex';
+            
+            terminalFontSize = parseInt(modalFontSize.value, 10) || 14;
+            terminal.style.fontSize = `${terminalFontSize}px`;
+            
+            closeModal();
+            
+            // 立即裁剪当前内容以符合新行数
+            while (terminal.children.length > maxTerminalLines) {
+                terminal.removeChild(terminal.firstChild);
+            }
+            saveLayoutToLocal();
+        });
+
+        // Sync main window checkbox backward
+        autoScrollCheckbox.addEventListener('change', (e) => {
+            modalAutoScroll.checked = e.target.checked;
+        });
+
+        // --- Param Component Logic ---
+        let paramManager = {
+            instances: []
+        };
+        
+        let currentEditingInst = null;
+
+        // 我们需要能多次添加参数组件实例
+        const workspaceEl = document.querySelector('.workspace');
+
+        function createParamWindow() {
+            const winId = 'param_win_' + Date.now();
+            const win = document.createElement('div');
+            win.className = 'floating-window';
+            win.id = winId;
+            win.style.left = '100px';
+            win.style.top = '100px';
+            win.style.width = '400px';
+            win.style.height = '500px';
+            win.style.zIndex = '10';
+            
+            win.innerHTML = `
+                <div class="window-header">
+                    <span class="window-title">参数调试</span>
+                </div>
+                <div class="param-list"></div>
+            `;
+            
+            workspaceEl.appendChild(win);
+            workspaceEl.appendChild(win);
+            // New window should appear on top by default
+            bringToFront(win);
+            const header = win.querySelector('.window-header');
+            initDraggable(header, win);
+            initContextMenu(win);
+            
+            const paramListEl = win.querySelector('.param-list');
+            
+            const newInst = {
+                win: win,
+                listContainer: paramListEl,
+                globalCmd: "PID {V1}",
+                sendOnRelease: true,
+                title: "参数调试",
+                configs: [
+                    { id: Date.now(), name: "参数 1", min: 0, max: 100, step: 1, val: 50 }
+                ]
+            };
+            
+            paramManager.instances.push(newInst);
+            renderParamUI(newInst);
+            saveLayoutToLocal();
+        }
+
+        const addParamBtnNew = document.getElementById('addParamBtn');
+        addParamBtnNew.addEventListener('click', () => {
+            createParamWindow();
+        });
+
+        // 第二个 menuDelete 监听被移至顶部统一定义了。
+
+        // 取消旧的单个paramWindow的相关逻辑
+        // 我们会用 currentContextMenuWindow 检测
+
+        const paramConfigsContainer = document.getElementById('paramConfigs');
+        const btnSaveParamSettings = document.getElementById('btnSaveParamSettings');
+        const btnAddParamConfig = document.getElementById('btnAddParamConfig');
+
+        // Render in Modal
+        function renderParamConfigList() {
+            if (!currentEditingInst) return;
+            document.getElementById('paramWindowTitle').value = currentEditingInst.title !== undefined ? currentEditingInst.title : '参数调试';
+            document.getElementById('paramSendOnRelease').checked = currentEditingInst.sendOnRelease !== undefined ? currentEditingInst.sendOnRelease : true;
+            document.getElementById('globalParamCmd').value = currentEditingInst.globalCmd;
+            paramConfigsContainer.innerHTML = '';
+            currentEditingInst.configs.forEach((cfg, index) => {
+                const div = document.createElement('div');
+                div.className = 'cfg-item';
+                div.id = `cfg_div_${cfg.id}`;
+                div.innerHTML = `
+                    <div class="cfg-header">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span style="font-weight:600; color:var(--primary-color);">V${index + 1}</span>
+                            <input type="text" id="cfg_name_${cfg.id}" class="cfg-name" value="${cfg.name}" placeholder="参数名称" />
+                        </div>
+                        <button class="cfg-delete-btn" title="删除参数" onclick="deleteParamConfig(${cfg.id})">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        </button>
+                    </div>
+                    <div class="cfg-grid">
+                        <div class="setting-group">
+                            <label style="font-size:0.8rem; font-weight:normal;">最小值</label>
+                            <input type="number" id="cfg_min_${cfg.id}" value="${cfg.min}" />
+                        </div>
+                        <div class="setting-group">
+                            <label style="font-size:0.8rem; font-weight:normal;">最大值</label>
+                            <input type="number" id="cfg_max_${cfg.id}" value="${cfg.max}" />
+                        </div>
+                        <div class="setting-group">
+                            <label style="font-size:0.8rem; font-weight:normal;">步进值</label>
+                            <input type="number" id="cfg_step_${cfg.id}" value="${cfg.step}" />
+                        </div>
+                    </div>
+                `;
+                paramConfigsContainer.appendChild(div);
+            });
+        }
+
+        window.deleteParamConfig = function(id) {
+            if (!currentEditingInst) return;
+            currentEditingInst.configs = currentEditingInst.configs.filter(c => c.id !== id);
+            renderParamConfigList();
+        }
+
+        btnAddParamConfig.addEventListener('click', () => {
+            if (!currentEditingInst) return;
+            const newIndex = currentEditingInst.configs.length + 1;
+            currentEditingInst.configs.push({
+                id: Date.now(), name: `新参数 ${newIndex}`, min: 0, max: 100, step: 1, val: 50
+            });
+            renderParamConfigList();
+            
+            // let it scroll to bottom
+            setTimeout(() => {
+                paramConfigsContainer.scrollTop = paramConfigsContainer.scrollHeight;
+            }, 50);
+        });
+
+        btnSaveParamSettings.addEventListener('click', () => {
+            if (!currentEditingInst) return;
+            currentEditingInst.globalCmd = document.getElementById('globalParamCmd').value || "";
+            currentEditingInst.title = document.getElementById('paramWindowTitle').value || "参数调试";
+            currentEditingInst.sendOnRelease = document.getElementById('paramSendOnRelease').checked;
+            
+            const titleEl = currentEditingInst.win.querySelector('.window-title');
+            if (titleEl) titleEl.textContent = currentEditingInst.title;
+            
+            // 保存配置
+            currentEditingInst.configs.forEach(cfg => {
+                const nameInput = document.getElementById(`cfg_name_${cfg.id}`);
+                const minInput = document.getElementById(`cfg_min_${cfg.id}`);
+                const maxInput = document.getElementById(`cfg_max_${cfg.id}`);
+                const stepInput = document.getElementById(`cfg_step_${cfg.id}`);
+                
+                if (nameInput) cfg.name = nameInput.value;
+                if (minInput) cfg.min = Number(minInput.value);
+                if (maxInput) cfg.max = Number(maxInput.value);
+                if (stepInput) cfg.step = Number(stepInput.value);
+                
+                // 修正当前值范围
+                if (cfg.val < cfg.min) cfg.val = cfg.min;
+                if (cfg.val > cfg.max) cfg.val = cfg.max;
+            });
+            closeParamModal();
+            renderParamUI(currentEditingInst);
+            saveLayoutToLocal();
+        });
+
+        function sendGlobalParamCommand(inst) {
+            if (!ws || ws.readyState !== WebSocket.OPEN || !inst.globalCmd) return;
+            
+            let cmdStr = inst.globalCmd;
+            inst.configs.forEach((cfg, index) => {
+                const placeholder = `{V${index + 1}}`;
+                // replace all occurrences of this placeholder
+                cmdStr = cmdStr.split(placeholder).join(cfg.val.toString());
+            });
+            
+            ws.send(cmdStr);
+            appendLog(`${cmdStr}`, 'send');
+        }
+
+        function renderParamUI(inst) {
+            inst.listContainer.innerHTML = '';
+            inst.configs.forEach((cfg) => {
+                const item = document.createElement('div');
+                item.className = 'param-item';
+                item.innerHTML = `
+                    <div class="param-header">
+                        <span>${cfg.name}</span>
+                        <span class="param-val" id="pval_${inst.win.id}_${cfg.id}">${cfg.val}</span>
+                    </div>
+                    <div class="param-controls">
+                        <button class="param-btn" id="pbtn_minus_${inst.win.id}_${cfg.id}">-</button>
+                        <input type="range" class="param-slider" id="pslider_${inst.win.id}_${cfg.id}" min="${cfg.min}" max="${cfg.max}" step="${cfg.step}" value="${cfg.val}">
+                        <button class="param-btn" id="pbtn_plus_${inst.win.id}_${cfg.id}">+</button>
+                    </div>
+                `;
+                inst.listContainer.appendChild(item);
+
+                const valView = item.querySelector(`#pval_${inst.win.id}_${cfg.id}`);
+                const slider = item.querySelector(`#pslider_${inst.win.id}_${cfg.id}`);
+                const btnMinus = item.querySelector(`#pbtn_minus_${inst.win.id}_${cfg.id}`);
+                const btnPlus = item.querySelector(`#pbtn_plus_${inst.win.id}_${cfg.id}`);
+
+                const updateAndSend = (newVal) => {
+                    newVal = Number(newVal);
+                    if (newVal < cfg.min) newVal = cfg.min;
+                    if (newVal > cfg.max) newVal = cfg.max;
+                    
+                    cfg.val = newVal;
+                    
+                    if(slider) slider.value = newVal;
+                    if(valView) valView.textContent = newVal;
+
+                    sendGlobalParamCommand(inst);
+                };
+
+                const updateValOnly = (newVal) => {
+                    newVal = Number(newVal);
+                    if (newVal < cfg.min) newVal = cfg.min;
+                    if (newVal > cfg.max) newVal = cfg.max;
+                    cfg.val = newVal;
+                    if(slider) slider.value = newVal;
+                    if(valView) valView.textContent = newVal;
+                };
+
+                if (slider) {
+                    slider.addEventListener('input', (e) => {
+                        const sendOnRelease = inst.sendOnRelease !== undefined ? inst.sendOnRelease : true;
+                        if (sendOnRelease) {
+                            // 预显示和存储数据，但不发送
+                            updateValOnly(e.target.value);
+                        } else {
+                            // 实时发送
+                            updateAndSend(e.target.value);
+                        }
+                    });
+                    
+                    slider.addEventListener('change', (e) => {
+                        const sendOnRelease = inst.sendOnRelease !== undefined ? inst.sendOnRelease : true;
+                        if (sendOnRelease) {
+                            updateAndSend(e.target.value);
+                        }
+                    });
+                }
+
+                const stepDecimals = (cfg.step.toString().split('.')[1] || '').length;
+                const roundStep = (v) => parseFloat(v.toFixed(stepDecimals));
+
+                if (btnMinus) {
+                    btnMinus.addEventListener('click', () => {
+                        updateAndSend(roundStep(cfg.val - cfg.step));
+                    });
+                }
+
+                if (btnPlus) {
+                    btnPlus.addEventListener('click', () => {
+                        updateAndSend(roundStep(cfg.val + cfg.step));
+                    });
+                }
+            });
+        }
+        
+        // --- Button Component Logic ---
+        let buttonManager = {
+            instances: []
+        };
+        let currentEditingBtnInst = null;
+
+        function createButtonWindow() {
+            const winId = 'btn_win_' + Date.now();
+            const win = document.createElement('div');
+            win.className = 'floating-window';
+            win.id = winId;
+            win.style.left = '150px';
+            win.style.top = '150px';
+            win.style.width = '120px';
+            win.style.height = '44px';
+            win.style.minWidth = '40px';
+            win.style.minHeight = '30px';
+            win.style.zIndex = '100'; // Make default on top
+            win.style.background = 'transparent';
+            win.style.border = 'none';
+            win.style.boxShadow = 'none';
+            win.style.resize = 'none';
+            win.style.overflow = 'visible';
+            
+            win.innerHTML = `
+                <button class="custom-cmd-btn" style="width:100%; height:100%; font-size:1rem; box-shadow:0 4px 6px rgba(0,0,0,0.1); margin:0; padding:0; display:block; outline:none; border-radius:6px; cursor:pointer;" title="操作提示\n右键调整位置/大小/设置"></button>
+            `;
+            
+            workspaceEl.appendChild(win);
+            workspaceEl.appendChild(win);
+            // New button window should be brought to front
+            bringToFront(win);
+            initContextMenu(win);
+            
+            const btnEl = win.querySelector('.custom-cmd-btn');
+            
+            const newInst = {
+                win: win,
+                btnEl: btnEl,
+                title: "自定义按钮",
+                btnText: "点击发送",
+                cmd: "COMMAND",
+                disableOnClick: false,
+                reenableCondition: 'none',
+                delayMs: 1000,
+                receiveCmd: "OK",
+                _timer: null // For delay condition
+            };
+            
+            buttonManager.instances.push(newInst);
+            renderButtonUI(newInst);
+            saveLayoutToLocal();
+        }
+
+        const addButtonBtn = document.getElementById('addButtonBtn');
+        addButtonBtn.addEventListener('click', () => {
+            createButtonWindow();
+        });
+
+        const addScopeBtn = document.getElementById('addScopeBtn');
+
+        function updateScopeButtonState(active) {
+            if (!addScopeBtn) return;
+            if (active) {
+                addScopeBtn.classList.add('disabled');
+                addScopeBtn.querySelector('.status').textContent = '已添加';
+                addScopeBtn.querySelector('.status').style.color = 'var(--success-color)';
+            } else {
+                addScopeBtn.classList.remove('disabled');
+                addScopeBtn.querySelector('.status').textContent = '+ 添加';
+                addScopeBtn.querySelector('.status').style.color = 'var(--primary-color)';
+            }
+        }
+
+        addScopeBtn.addEventListener('click', () => {
+            createScopeWindow();
+        });
+
+        function renderButtonUI(inst) {
+            const titleEl = inst.win.querySelector('.window-title');
+            if (titleEl) titleEl.textContent = inst.title;
+            
+            inst.btnEl.textContent = inst.btnText;
+            
+            // Clean up old listeners by recreation or standard way? Easier to just replace with clone.
+            const newBtn = inst.btnEl.cloneNode(true);
+            inst.btnEl.parentNode.replaceChild(newBtn, inst.btnEl);
+            inst.btnEl = newBtn;
+            
+            // If it was still disabled from previous states, and we turned off disableOnClick, re-enable it
+            if (!inst.disableOnClick) {
+                inst.btnEl.disabled = false;
+                inst.win.dataset.disabled = "false";
+            }
+
+            inst.btnEl.addEventListener('click', () => {
+                if (inst.btnEl.disabled) return;
+                
+                // send command
+                if (ws && ws.readyState === WebSocket.OPEN && inst.cmd) {
+                    ws.send(inst.cmd);
+                    appendLog(inst.cmd, 'send');
+                }
+                
+                if (inst.disableOnClick) {
+                    inst.btnEl.disabled = true;
+                    inst.win.dataset.disabled = "true";
+                    
+                    if (inst.reenableCondition === 'delay') {
+                        if (inst._timer) clearTimeout(inst._timer);
+                        let remaining = Math.ceil(inst.delayMs / 1000);
+                        inst.btnEl.textContent = remaining + "s 后恢复";
+                        
+                        inst._timer = setInterval(() => {
+                            remaining--;
+                            if (remaining > 0) {
+                                inst.btnEl.textContent = remaining + "s 后恢复";
+                            } else {
+                                clearInterval(inst._timer);
+                                inst._timer = null;
+                                inst.btnEl.disabled = false;
+                                inst.btnEl.textContent = inst.btnText;
+                                inst.win.dataset.disabled = "false";
+                            }
+                        }, 1000);
+                        // Also handle case where delayMs is less than 1000ms
+                        if (inst.delayMs < 1000) {
+                            clearInterval(inst._timer);
+                            inst._timer = setTimeout(() => {
+                                inst.btnEl.disabled = false;
+                                inst.btnEl.textContent = inst.btnText;
+                                inst.win.dataset.disabled = "false";
+                            }, inst.delayMs);
+                        }
+                    } else if (inst.reenableCondition === 'receive') {
+                        inst.btnEl.textContent = "等待回传...";
+                    }
+                }
+            });
+        }
+
+        // --- Scope Component Logic ---
+        let scopeManager = {
+            instance: null
+        };
+        let currentEditingScopeInst = null;
+        let scopeSerialBuffer = '';
+
+        function scheduleScopeSave(inst) {
+            if (inst._saveTimer) clearTimeout(inst._saveTimer);
+            inst._saveTimer = setTimeout(() => {
+                saveLayoutToLocal();
+            }, 120);
+        }
+
+        function buildScopeWindowMarkup() {
+            return `
+                <div class="window-header">
+                    <div class="scope-title-group">
+                        <span class="window-title">示波器</span>
+                        <div class="scope-title-help" tabindex="0" aria-label="示波器使用帮助">
+                            i
+                            <div class="scope-title-help-panel" role="tooltip">
+                                <h4>示波器使用方法</h4>
+                                <ul>
+                                    <li>在波形区域滚轮可缩放时间窗口；按住 Alt 再滚轮可调纵轴缩放。</li>
+                                    <li>按住波形区域左右拖动，可查看历史数据；底部滑条也可直接拖动。</li>
+                                    <li>点击“auto”可回到最新波形；点击“清空”可清除当前缓存。</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="header-right">
+                        <div class="scope-meta">
+                            <span class="scope-stats">样本: 0/0  通道: 0  时间尺度: 0 ms</span>
+                        </div>
+                        <div class="window-controls">
+                        <button type="button" class="scope-auto-btn scope-ctrl-btn" title="跳到最新">auto</button>
+                        <button type="button" class="scope-pause-btn scope-ctrl-btn" title="冻结/继续接收">冻结接收</button>
+                        <button type="button" class="scope-yscale-auto scope-ctrl-btn" title="纵轴自动缩放">Y</button>
+                        <button type="button" class="scope-clear-btn scope-ctrl-btn" title="清空波形">清空</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="scope-main">
+                    <div class="scope-plot">
+                        <canvas class="scope-canvas"></canvas>
+                        <div class="scope-hover-tooltip"></div>
+                    </div>
+                    <div class="scope-controls">
+                        <input type="range" class="scope-history-slider" min="0" max="0" value="0">
+                    </div>
+                </div>
+            `;
+        }
+
+        function updateScopeButtonState(active) {
+            if (!addScopeBtn) return;
+            if (active) {
+                addScopeBtn.classList.add('disabled');
+                addScopeBtn.querySelector('.status').textContent = '已添加';
+                addScopeBtn.querySelector('.status').style.color = 'var(--success-color)';
+            } else {
+                addScopeBtn.classList.remove('disabled');
+                addScopeBtn.querySelector('.status').textContent = '+ 添加';
+                addScopeBtn.querySelector('.status').style.color = 'var(--primary-color)';
+            }
+        }
+
+        function createScopeWindow(config = {}) {
+            if (scopeManager.instance) return scopeManager.instance;
+
+            const winId = 'scope_win_' + Date.now();
+            const win = document.createElement('div');
+            win.className = 'floating-window scope-window';
+            win.id = winId;
+            win.style.left = config.left || '120px';
+            win.style.top = config.top || '120px';
+            win.style.width = config.width || '780px';
+            win.style.height = config.height || '380px';
+            win.style.zIndex = '90';
+            win.style.minWidth = '420px';
+            win.style.minHeight = '280px';
+            win.dataset.locked = config.locked ? 'true' : 'false';
+            win.style.resize = win.dataset.locked === 'true' ? 'none' : 'both';
+
+            win.innerHTML = buildScopeWindowMarkup();
+
+            workspaceEl.appendChild(win);
+            workspaceEl.appendChild(win);
+            // Ensure new scope window is on top
+            bringToFront(win);
+            const header = win.querySelector('.window-header');
+            initDraggable(header, win);
+            initContextMenu(win);
+
+            const plotEl = win.querySelector('.scope-plot');
+            const canvas = win.querySelector('.scope-canvas');
+            const hoverTooltipEl = win.querySelector('.scope-hover-tooltip');
+            const historySlider = win.querySelector('.scope-history-slider');
+            const autoBtn = win.querySelector('.scope-auto-btn');
+            const pauseBtn = win.querySelector('.scope-pause-btn');
+            const yAutoBtn = win.querySelector('.scope-yscale-auto');
+            const clearBtn = win.querySelector('.scope-clear-btn');
+            const scopeStatsEl = win.querySelector('.scope-stats');
+
+            const samplePoints = Math.max(100, Math.min(5000, parseInt(config.samplePoints, 10) || 1000));
+            const samples = Array.isArray(config.samples) ? config.samples
+                .map(item => Array.isArray(item) ? item : null)
+                .filter(Boolean)
+                .slice(-samplePoints) : [];
+            const sampleTimes = Array.isArray(config.sampleTimes) ? config.sampleTimes.slice(-samplePoints) : [];
+
+            const newInst = {
+                win,
+                title: '示波器',
+                plotEl,
+                canvas,
+                hoverTooltipEl,
+                historySlider,
+                autoBtn,
+                pauseBtn,
+                yAutoBtn,
+                clearBtn,
+                scopeStatsEl,
+                samplePoints,
+                samples,
+                sampleTimes,
+                samplesPerPixel: typeof config.samplesPerPixel === 'number' ? config.samplesPerPixel : 0.32,
+                timeScaleMsPerSample: typeof config.timeScaleMsPerSample === 'number' ? config.timeScaleMsPerSample : 1,
+                // user-controlled time window (ms). Only changed via UI, not automatically.
+                timeWindowMs: typeof config.timeWindowMs === 'number' ? config.timeWindowMs : 10000,
+                showSampleMarkers: typeof config.showSampleMarkers === 'boolean' ? config.showSampleMarkers : true,
+                viewTimeOffsetMs: typeof config.viewTimeOffsetMs === 'number' ? config.viewTimeOffsetMs : 0,
+                yScale: typeof config.yScale === 'number' ? config.yScale : 1,
+                yOffsetUnits: typeof config.yOffsetUnits === 'number' ? config.yOffsetUnits : 0,
+                viewOffset: typeof config.viewOffset === 'number' ? config.viewOffset : 0,
+                paused: !!config.paused,
+                baseYScalePx: 30,
+                _renderPending: false,
+                _saveTimer: null,
+                _draggingY: false,
+                _dragStartY: 0,
+                _dragStartOffset: 0,
+                _resizeObserver: null,
+                _hoverPoints: []
+            };
+
+            scopeManager.instance = newInst;
+            updateScopeButtonState(true);
+            bindScopeInteractions(newInst);
+            renderScopeUI(newInst);
+            scheduleScopeSave(newInst);
+            return newInst;
+        }
+
+        function bindScopeInteractions(inst) {
+            const hideScopeTooltip = () => {
+                if (!inst.hoverTooltipEl) return;
+                inst.hoverTooltipEl.classList.remove('active');
+                inst.hoverTooltipEl.style.transform = 'translate(-9999px, -9999px)';
+            };
+
+            if (inst._resizeObserver) inst._resizeObserver.disconnect();
+            inst._resizeObserver = new ResizeObserver(() => {
+                renderScopeUI(inst);
+            });
+            inst._resizeObserver.observe(inst.plotEl);
+
+            inst.historySlider.addEventListener('input', (e) => {
+                const range = getScopeVisibleRange(inst);
+                const visibleCount = Math.max(0, range.end - range.start);
+                const totalSamples = range.totalSamples;
+                const maxOffset = Math.max(0, totalSamples - visibleCount);
+
+                // display range: 0=oldest(left), max=latest(right)
+                const displayVal = Math.max(0, Math.min(maxOffset, Number(e.target.value) || 0));
+                inst.viewOffset = Math.max(0, maxOffset - displayVal);
+                if (totalSamples > 0 && Array.isArray(inst.sampleTimes) && inst.sampleTimes.length >= totalSamples) {
+                    const latestTs = Number(inst.sampleTimes[totalSamples - 1]);
+                    const endExclusive = Math.max(0, totalSamples - inst.viewOffset);
+                    const endIdx = Math.max(0, Math.min(totalSamples - 1, endExclusive - 1));
+                    const targetTs = endExclusive > 0 ? Number(inst.sampleTimes[endIdx]) : Number(inst.sampleTimes[0]);
+                    if (Number.isFinite(latestTs) && Number.isFinite(targetTs)) {
+                        inst.viewTimeOffsetMs = Math.max(0, latestTs - targetTs);
+                    }
+                }
+                updateScopeHistorySlider(inst, totalSamples, visibleCount, maxOffset);
+                scheduleScopeRender(inst);
+                scheduleScopeSave(inst);
+            });
+
+            inst.autoBtn.addEventListener('click', () => {
+                inst.viewOffset = 0;
+                inst.viewTimeOffsetMs = 0;
+                fitScopeToVisibleData(inst);
+                renderScopeUI(inst);
+                saveLayoutToLocal();
+            });
+
+            // Y-axis auto scale only; manual +/- buttons were removed from the UI.
+            if (inst.yAutoBtn) {
+                inst.yAutoBtn.addEventListener('click', () => {
+                    fitScopeToVisibleData(inst);
+                    renderScopeUI(inst);
+                    scheduleScopeSave(inst);
+                });
+            }
+
+            if (inst.clearBtn) {
+                inst.clearBtn.addEventListener('click', () => {
+                    inst.samples = [];
+                    inst.viewOffset = 0;
+                    inst.viewTimeOffsetMs = 0;
+                    scopeSerialBuffer = '';
+                    inst._lastSampleTs = null;
+                    inst.sampleTimes = [];
+                    renderScopeUI(inst);
+                    scheduleScopeSave(inst);
+                });
+            }
+
+            inst.pauseBtn.addEventListener('click', () => {
+                inst.paused = !inst.paused;
+                if (inst.paused) scopeSerialBuffer = '';
+                renderScopeUI(inst);
+                scheduleScopeSave(inst);
+            });
+
+            inst.plotEl.addEventListener('wheel', (e) => {
+                if (!scopeManager.instance) return;
+                e.preventDefault();
+                if (e.altKey) {
+                    const factor = e.deltaY < 0 ? 1.12 : 0.89;
+                    inst.yScale = Math.max(0.2, Math.min(80, inst.yScale * factor));
+                } else {
+                    const factor = e.deltaY < 0 ? 0.88 : 1.12;
+                    inst.timeWindowMs = Math.max(10, Math.min(6000000, Math.round(inst.timeWindowMs * factor)));
+                }
+                renderScopeUI(inst);
+                scheduleScopeSave(inst);
+            }, { passive: false });
+
+            inst.plotEl.addEventListener('mousemove', (e) => {
+                const points = Array.isArray(inst._hoverPoints) ? inst._hoverPoints : [];
+                if (!points.length || !inst.hoverTooltipEl) {
+                    hideScopeTooltip();
+                    return;
+                }
+
+                const rect = inst.plotEl.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                let best = null;
+                let bestD2 = Infinity;
+                for (const p of points) {
+                    const dx = x - p.x;
+                    const dy = y - p.y;
+                    const d2 = dx * dx + dy * dy;
+                    if (d2 < bestD2) {
+                        bestD2 = d2;
+                        best = p;
+                    }
+                }
+
+                if (!best || bestD2 > 12 * 12) {
+                    hideScopeTooltip();
+                    return;
+                }
+
+                const tip = inst.hoverTooltipEl;
+                tip.innerHTML = `CH${best.channel + 1}: ${best.value.toFixed(3)}`;
+
+                const tipW = Math.max(80, tip.offsetWidth || 120);
+                const tipH = Math.max(24, tip.offsetHeight || 42);
+                const tx = Math.min(Math.max(6, best.x + 10), Math.max(6, rect.width - tipW - 6));
+                const ty = Math.min(Math.max(6, best.y - tipH - 10), Math.max(6, rect.height - tipH - 6));
+
+                tip.style.transform = `translate(${tx}px, ${ty}px)`;
+                tip.classList.add('active');
+            });
+
+            inst.plotEl.addEventListener('mouseleave', hideScopeTooltip);
+
+            inst.plotEl.addEventListener('mousedown', (e) => {
+                if (e.button !== 0) return;
+                if (e.target.closest('.window-header')) return;
+                hideScopeTooltip();
+
+                inst._panMode = null;
+                inst._panStartX = e.clientX;
+                inst._panStartY = e.clientY;
+                inst._panStartYOffset = inst.yOffsetUnits;
+
+                const range = getScopeVisibleRange(inst);
+                const visibleCount = Math.max(0, range.end - range.start);
+                const totalSamples = range.totalSamples;
+                const maxOffset = Math.max(0, totalSamples - visibleCount);
+
+                inst._panStartOffset = Math.max(0, Math.min(maxOffset, inst.viewOffset || 0));
+                inst._panStartTimeOffset = Math.max(0, range.viewTimeOffsetMs || 0);
+                inst._panStartAxisDuration = Math.max(1, range.axisDurationMs || inst.timeWindowMs || 1);
+                inst._panMaxTimeOffset = Math.max(0, range.maxTimeOffsetMs || 0);
+
+                document.addEventListener('mousemove', onScopePanMove);
+                document.addEventListener('mouseup', onScopePanEnd);
+            });
+
+            function onScopePanMove(e) {
+                const dx = e.clientX - inst._panStartX;
+                const dy = e.clientY - inst._panStartY;
+
+                if (!inst._panMode) {
+                    if (Math.abs(dx) > 6 || Math.abs(dy) > 6) {
+                        inst._panMode = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+                    } else {
+                        return;
+                    }
+                }
+
+                if (inst._panMode === 'y') {
+                    const pxPerUnit = Math.max(1, inst.baseYScalePx * inst.yScale);
+                    const deltaUnits = (e.clientY - inst._panStartY) / pxPerUnit;
+                    inst.yOffsetUnits = inst._panStartYOffset + deltaUnits;
+                    scheduleScopeRender(inst);
+                    scheduleScopeSave(inst);
+                    return;
+                }
+
+                // horizontal pan: map pixels to time offset for smooth movement under irregular sampling intervals
+                const range = getScopeVisibleRange(inst);
+                const totalSamples = range.totalSamples;
+                const visibleCount = Math.max(0, range.end - range.start);
+                const maxOffset = Math.max(0, totalSamples - visibleCount);
+                if (maxOffset <= 0) return;
+
+                const plotW = Math.max(1, inst.plotEl.clientWidth);
+                const deltaMs = (dx / plotW) * Math.max(1, inst._panStartAxisDuration || range.axisDurationMs || inst.timeWindowMs || 1);
+                const baseTimeOffset = Math.max(0, inst._panStartTimeOffset || 0);
+                const maxTimeOffset = Math.max(0, Number.isFinite(inst._panMaxTimeOffset) ? inst._panMaxTimeOffset : range.maxTimeOffsetMs || 0);
+                inst.viewTimeOffsetMs = Math.max(0, Math.min(maxTimeOffset, baseTimeOffset + deltaMs));
+
+                const syncedRange = getScopeVisibleRange(inst);
+                inst.viewOffset = Math.max(0, Math.min(maxOffset, syncedRange.viewOffsetSamples || 0));
+
+                updateScopeHistorySlider(inst, totalSamples, visibleCount, maxOffset);
+                scheduleScopeRender(inst);
+            }
+
+            function onScopePanEnd() {
+                document.removeEventListener('mousemove', onScopePanMove);
+                document.removeEventListener('mouseup', onScopePanEnd);
+                inst._panMode = null;
+                inst._panStartOffset = null;
+                inst._panStartTimeOffset = null;
+                inst._panStartAxisDuration = null;
+                inst._panMaxTimeOffset = null;
+                saveLayoutToLocal();
+            }
+        }
+
+        function updateScopeHistorySlider(inst, totalSamples, visibleCount, maxOffset) {
+            if (!inst || !inst.historySlider) return;
+
+            const slider = inst.historySlider;
+            const max = Math.max(0, maxOffset || 0);
+            const total = Math.max(0, totalSamples || 0);
+            const visible = Math.max(0, Math.min(total || 0, visibleCount || 0));
+
+            slider.max = String(max);
+            const displayVal = Math.max(0, Math.min(max, max - (inst.viewOffset || 0)));
+            slider.value = String(displayVal);
+            slider.disabled = max <= 0;
+
+            const visibleRatio = total > 0 ? Math.max(0.02, Math.min(1, visible / total)) : 1;
+            const travelRatio = Math.max(0, 1 - visibleRatio);
+            const posRatio = max > 0 ? (displayVal / max) * travelRatio : 0;
+            const start = Math.max(0, Math.min(1, posRatio));
+            const end = Math.max(start, Math.min(1, start + visibleRatio));
+
+            const track = 'rgba(148,163,184,0.22)';
+            const segment = 'rgba(96,165,250,0.95)';
+            const startPct = Math.round(start * 1000) / 10;
+            const endPct = Math.round(end * 1000) / 10;
+            slider.style.background = `linear-gradient(90deg, ${track} 0%, ${track} ${startPct}%, ${segment} ${startPct}%, ${segment} ${endPct}%, ${track} ${endPct}%, ${track} 100%)`;
+        }
+
+        function scheduleScopeRender(inst) {
+            if (inst._renderPending) return;
+            inst._renderPending = true;
+            requestAnimationFrame(() => {
+                inst._renderPending = false;
+                drawScope(inst);
+            });
+        }
+
+        function getScopeVisibleEndIndex(inst) {
+            const total = Array.isArray(inst && inst.samples) ? inst.samples.length : 0;
+            return Math.max(0, total - Math.max(0, inst && inst.viewOffset ? inst.viewOffset : 0));
+        }
+
+        function findScopeEndIndexByTime(sampleTimes, endTs, endLimit) {
+            const times = Array.isArray(sampleTimes) ? sampleTimes : [];
+            let low = 0;
+            let high = Math.max(0, Math.min(times.length, endLimit));
+            while (low < high) {
+                const mid = (low + high) >> 1;
+                const value = Number(times[mid]);
+                if (!Number.isFinite(value) || value <= endTs) low = mid + 1;
+                else high = mid;
+            }
+            return low;
+        }
+
+        function findScopeStartIndexByTime(sampleTimes, endIndex, startTs) {
+            const times = Array.isArray(sampleTimes) ? sampleTimes : [];
+            let low = 0;
+            let high = Math.max(0, Math.min(times.length, endIndex));
+            while (low < high) {
+                const mid = (low + high) >> 1;
+                const value = Number(times[mid]);
+                if (!Number.isFinite(value) || value < startTs) low = mid + 1;
+                else high = mid;
+            }
+            return low;
+        }
+
+        function getScopeVisibleRange(inst) {
+            const totalSamples = Math.max(0, inst && inst.samples ? inst.samples.length : 0);
+            const sampleTimes = Array.isArray(inst && inst.sampleTimes) ? inst.sampleTimes : [];
+            if (totalSamples <= 0) {
+                const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+                const axisDurationMs = Math.max(1, Number(inst && inst.timeWindowMs) || 1000);
+                return {
+                    start: 0,
+                    end: 0,
+                    totalSamples: 0,
+                    axisStartTs: now - axisDurationMs,
+                    axisEndTs: now,
+                    axisDurationMs,
+                    viewTimeOffsetMs: 0,
+                    maxTimeOffsetMs: 0,
+                    viewOffsetSamples: 0
+                };
+            }
+
+            const latestTsRaw = Number(sampleTimes[totalSamples - 1]);
+            const oldestTsRaw = Number(sampleTimes[0]);
+            const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+            const latestTs = Number.isFinite(latestTsRaw) ? latestTsRaw : now;
+            const oldestTs = Number.isFinite(oldestTsRaw) ? oldestTsRaw : (latestTs - Math.max(1, totalSamples - 1));
+            const axisDurationMs = Math.max(1, Number(inst && inst.timeWindowMs) || 1000);
+
+            let viewTimeOffsetMs = Number(inst && inst.viewTimeOffsetMs);
+            if (!Number.isFinite(viewTimeOffsetMs)) {
+                const derivedEnd = Math.max(1, Math.min(totalSamples, getScopeVisibleEndIndex(inst)));
+                const derivedTs = Number(sampleTimes[derivedEnd - 1]);
+                viewTimeOffsetMs = Number.isFinite(derivedTs) ? Math.max(0, latestTs - derivedTs) : 0;
+            }
+
+            const maxTimeOffsetMs = Math.max(0, (latestTs - oldestTs) - axisDurationMs);
+            viewTimeOffsetMs = Math.max(0, Math.min(maxTimeOffsetMs, viewTimeOffsetMs));
+
+            const axisEndTs = latestTs - viewTimeOffsetMs;
+            const axisStartTs = axisEndTs - axisDurationMs;
+
+            const end = findScopeEndIndexByTime(sampleTimes, axisEndTs, totalSamples);
+            const start = findScopeStartIndexByTime(sampleTimes, end, axisStartTs);
+            const viewOffsetSamples = Math.max(0, totalSamples - end);
+
+            return {
+                start: Math.max(0, Math.min(start, end)),
+                end,
+                totalSamples,
+                axisStartTs,
+                axisEndTs,
+                axisDurationMs,
+                viewTimeOffsetMs,
+                maxTimeOffsetMs,
+                viewOffsetSamples
+            };
+        }
+
+        function renderScopeUI(inst) {
+            if (!inst || !inst.canvas) return;
+            const range = getScopeVisibleRange(inst);
+            const visibleCount = Math.max(0, range.end - range.start);
+            const maxOffset = Math.max(0, range.totalSamples - visibleCount);
+            inst.viewTimeOffsetMs = Math.max(0, range.viewTimeOffsetMs || 0);
+            inst.viewOffset = Math.max(0, Math.min(range.viewOffsetSamples || 0, maxOffset));
+            updateScopeHistorySlider(inst, range.totalSamples, visibleCount, maxOffset);
+
+            if (inst.pauseBtn) inst.pauseBtn.textContent = inst.paused ? '继续接收' : '冻结接收';
+            scheduleScopeRender(inst);
+        }
+
+        function fitScopeToVisibleData(inst) {
+            const canvasHeight = Math.max(1, inst.plotEl.clientHeight);
+            const range = getScopeVisibleRange(inst);
+            const data = inst.samples.slice(range.start, range.end);
+            if (!data.length) {
+                inst.yScale = 1;
+                inst.yOffsetUnits = 0;
+                return;
+            }
+
+            let min = Infinity;
+            let max = -Infinity;
+            data.forEach(sample => {
+                sample.forEach(value => {
+                    if (!Number.isFinite(value)) return;
+                    if (value < min) min = value;
+                    if (value > max) max = value;
+                });
+            });
+
+            if (!Number.isFinite(min) || !Number.isFinite(max)) {
+                inst.yScale = 1;
+                inst.yOffsetUnits = 0;
+                return;
+            }
+
+            const span = Math.max(1e-6, max - min);
+            inst.yOffsetUnits = (min + max) / 2;
+            inst.yScale = Math.max(0.2, Math.min(80, (canvasHeight * 0.78) / (span * inst.baseYScalePx)));
+        }
+
+        function drawScope(inst) {
+            if (!inst || !inst.canvas || !inst.plotEl) return;
+
+            const dpr = window.devicePixelRatio || 1;
+            const cssWidth = Math.max(1, inst.plotEl.clientWidth);
+            const cssHeight = Math.max(1, inst.plotEl.clientHeight);
+            const canvasWidth = Math.max(1, Math.floor(cssWidth * dpr));
+            const canvasHeight = Math.max(1, Math.floor(cssHeight * dpr));
+            if (inst.canvas.width !== canvasWidth || inst.canvas.height !== canvasHeight) {
+                inst.canvas.width = canvasWidth;
+                inst.canvas.height = canvasHeight;
+            }
+
+            const ctx = inst.canvas.getContext('2d');
+            if (!ctx) return;
+
+            ctx.save();
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            ctx.clearRect(0, 0, cssWidth, cssHeight);
+
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(0, 0, cssWidth, cssHeight);
+
+            const axisLeft = 56;
+            const axisBottom = 26;
+            const plotLeft = axisLeft;
+            const plotTop = 10;
+            const plotWidth = Math.max(1, cssWidth - axisLeft - 10);
+            const plotHeight = Math.max(1, cssHeight - axisBottom - plotTop);
+
+            ctx.strokeStyle = 'rgba(148, 163, 184, 0.12)';
+            ctx.lineWidth = 1;
+            const gridX = 10;
+            const gridY = 6;
+            for (let i = 1; i < gridX; i++) {
+                const x = plotLeft + Math.round((plotWidth / gridX) * i) + 0.5;
+                ctx.beginPath();
+                ctx.moveTo(x, plotTop);
+                ctx.lineTo(x, plotTop + plotHeight);
+                ctx.stroke();
+            }
+            for (let i = 1; i < gridY; i++) {
+                const y = plotTop + Math.round((plotHeight / gridY) * i) + 0.5;
+                ctx.beginPath();
+                ctx.moveTo(plotLeft, y);
+                ctx.lineTo(plotLeft + plotWidth, y);
+                ctx.stroke();
+            }
+
+            ctx.strokeStyle = 'rgba(255,255,255,0.45)';
+            ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            ctx.moveTo(plotLeft + 0.5, plotTop);
+            ctx.lineTo(plotLeft + 0.5, plotTop + plotHeight);
+            ctx.moveTo(plotLeft, plotTop + plotHeight + 0.5);
+            ctx.lineTo(plotLeft + plotWidth, plotTop + plotHeight + 0.5);
+            ctx.stroke();
+
+            ctx.fillStyle = 'rgba(255,255,255,0.65)';
+            ctx.font = '11px sans-serif';
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+            for (let i = 0; i <= 4; i++) {
+                const ratio = i / 4;
+                const y = plotTop + plotHeight - ratio * plotHeight;
+                const value = inst.yOffsetUnits + ((plotTop + plotHeight / 2) - y) / Math.max(1, inst.baseYScalePx * inst.yScale);
+                ctx.fillText(value.toFixed(Math.abs(value) < 10 ? 2 : 1), plotLeft - 6, y);
+                ctx.beginPath();
+                ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+                ctx.moveTo(plotLeft - 4, y + 0.5);
+                ctx.lineTo(plotLeft, y + 0.5);
+                ctx.stroke();
+            }
+
+            // time axis labels will be drawn after we compute visible timestamps
+
+            if (!inst.samples.length) {
+                inst._hoverPoints = [];
+                if (inst.hoverTooltipEl) {
+                    inst.hoverTooltipEl.classList.remove('active');
+                    inst.hoverTooltipEl.style.transform = 'translate(-9999px, -9999px)';
+                }
+                ctx.fillStyle = 'rgba(255,255,255,0.55)';
+                ctx.font = '14px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('等待串口数据...', plotLeft + plotWidth / 2, plotTop + plotHeight / 2);
+                ctx.restore();
+                return;
+            }
+
+            const range = getScopeVisibleRange(inst);
+            const visibleData = inst.samples.slice(range.start, range.end);
+            const visibleTimes = (inst.sampleTimes && inst.sampleTimes.slice(range.start, range.end)) || [];
+            const drawStart = Math.max(0, range.start - 1);
+            const drawEnd = Math.min(inst.samples.length, range.end + 1);
+            const drawData = inst.samples.slice(drawStart, drawEnd);
+            const drawTimes = (inst.sampleTimes && inst.sampleTimes.slice(drawStart, drawEnd)) || [];
+            const visibleCount = Math.max(0, visibleData.length);
+            const maxOffset = Math.max(0, range.totalSamples - visibleCount);
+            inst.viewOffset = Math.max(0, Math.min(inst.viewOffset || 0, maxOffset));
+            updateScopeHistorySlider(inst, range.totalSamples, visibleCount, maxOffset);
+
+            const lineColors = ['#22c55e', '#60a5fa', '#f97316', '#e879f9', '#f59e0b', '#38bdf8'];
+            const channelCount = Math.max(1, ...visibleData.map(sample => Array.isArray(sample) ? sample.length : 0));
+            const pxPerUnit = Math.max(1, inst.baseYScalePx * inst.yScale);
+            const centerY = plotTop + plotHeight / 2;
+
+            // zero line
+            ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+            ctx.beginPath();
+            ctx.moveTo(plotLeft, centerY + 0.5);
+            ctx.lineTo(plotLeft + plotWidth, centerY + 0.5);
+            ctx.stroke();
+            const axisEndTs = range.axisEndTs;
+            const axisStartTs = range.axisStartTs;
+            const axisDurationMs = range.axisDurationMs;
+            const hoverPoints = [];
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(plotLeft, plotTop, plotWidth, plotHeight);
+            ctx.clip();
+
+            for (let channel = 0; channel < channelCount; channel++) {
+                const color = lineColors[channel % lineColors.length];
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                let started = false;
+                drawData.forEach((sample, index) => {
+                    const value = Number(sample && sample[channel]);
+                    if (!Number.isFinite(value)) return;
+                    // map timestamp to x using axisStartTs/axisDurationMs
+                    const t = drawTimes[index] || (axisStartTs + (index / Math.max(1, drawData.length - 1)) * axisDurationMs);
+                    const rel = (t - axisStartTs) / axisDurationMs;
+                    const x = plotLeft + rel * plotWidth;
+                    const y = centerY - ((value - inst.yOffsetUnits) * pxPerUnit);
+                    if (x >= plotLeft - 2 && x <= plotLeft + plotWidth + 2 && y >= plotTop - 2 && y <= plotTop + plotHeight + 2) {
+                        hoverPoints.push({
+                            x,
+                            y,
+                            channel,
+                            value,
+                            timeMs: t - axisStartTs
+                        });
+                    }
+                    if (!started) {
+                        ctx.moveTo(x, y);
+                        started = true;
+                    }
+                    else ctx.lineTo(x, y);
+                });
+                ctx.stroke();
+
+                if (inst.showSampleMarkers !== false) {
+                    // draw sample markers for this channel (visible window only)
+                    ctx.fillStyle = color;
+                    for (let i = 0; i < visibleData.length; i++) {
+                        const sample = visibleData[i];
+                        const value = Number(sample && sample[channel]);
+                        if (!Number.isFinite(value)) continue;
+                        const t = visibleTimes[i] || (axisStartTs + (i / Math.max(1, visibleData.length - 1)) * axisDurationMs);
+                        const rel = (t - axisStartTs) / axisDurationMs;
+                        const x = plotLeft + rel * plotWidth;
+                        const y = centerY - ((value - inst.yOffsetUnits) * pxPerUnit);
+                        ctx.beginPath();
+                        ctx.arc(x, y, 3, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+                        ctx.lineWidth = 0.6;
+                        ctx.stroke();
+                    }
+                }
+            }
+            ctx.restore();
+            inst._hoverPoints = hoverPoints;
+
+            // draw small bottom ticks for each sample (subtle)
+            ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < visibleData.length; i++) {
+                const t = visibleTimes[i] || (axisStartTs + (i / Math.max(1, visibleData.length - 1)) * axisDurationMs);
+                const rel = (t - axisStartTs) / axisDurationMs;
+                const x = plotLeft + rel * plotWidth + 0.5;
+                ctx.beginPath();
+                ctx.moveTo(x, plotTop + plotHeight);
+                ctx.lineTo(x, plotTop + plotHeight + 6);
+                ctx.stroke();
+            }
+
+            // draw time axis ticks and labels based on axisDurationMs
+            const formatMs = (value) => {
+                if (!Number.isFinite(value)) return '0 ms';
+                if (Math.abs(value) < 10) return `${value.toFixed(1)} ms`;
+                return `${Math.round(value)} ms`;
+            };
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            for (let i = 0; i <= 5; i++) {
+                const ratio = i / 5;
+                const x = plotLeft + ratio * plotWidth;
+                const timeMs = ratio * axisDurationMs;
+                ctx.fillText(formatMs(timeMs), x, plotTop + plotHeight + 6);
+                ctx.beginPath();
+                ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+                ctx.moveTo(x + 0.5, plotTop + plotHeight);
+                ctx.lineTo(x + 0.5, plotTop + plotHeight + 4);
+                ctx.stroke();
+            }
+            ctx.fillText('ms', plotLeft + plotWidth - 6, plotTop + plotHeight + 22);
+
+            // update header stats instead of drawing on canvas
+            if (inst.scopeStatsEl) {
+                inst.scopeStatsEl.textContent = `样本: ${inst.samples.length}/${inst.samplePoints}  通道: ${channelCount}  当前时间窗口: ${formatMs(inst.timeWindowMs)}`;
+            }
+
+            ctx.restore();
+        }
+
+        function handleScopeSerialText(text) {
+            const inst = scopeManager.instance;
+            if (!inst || !text || inst.paused) return;
+            scopeSerialBuffer += String(text).replace(/\r/g, '');
+
+                const pushSample = (line) => {
+                const trimmed = line.trim();
+                if (!trimmed) return false;
+                const sample = trimmed.split(',').map(part => parseFloat(part.trim())).filter(Number.isFinite);
+                if (!sample.length) return false;
+                // attach arrival timestamp and push aligned arrays
+                const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+                inst.samples.push(sample);
+                if (!Array.isArray(inst.sampleTimes)) inst.sampleTimes = [];
+                inst.sampleTimes.push(now);
+                if (inst.samples.length > inst.samplePoints) {
+                    const remove = inst.samples.length - inst.samplePoints;
+                    inst.samples.splice(0, remove);
+                    if (inst.sampleTimes && inst.sampleTimes.length) inst.sampleTimes.splice(0, remove);
+                }
+                return true;
+            };
+
+            let updated = false;
+            const lines = scopeSerialBuffer.split('\n');
+            scopeSerialBuffer = lines.pop() || '';
+            lines.forEach(line => {
+                if (pushSample(line)) updated = true;
+            });
+
+            if (scopeSerialBuffer && pushSample(scopeSerialBuffer)) {
+                scopeSerialBuffer = '';
+                updated = true;
+            }
+
+            if (updated) {
+                renderScopeUI(inst);
+            }
+        }
+
+        // --- Layout save/load/export/import ---
+        function getLayoutData() {
+            const layout = {
+                terminal: {
+                    left: terminalWindow.style.left || terminalWindow.offsetLeft + 'px',
+                    top: terminalWindow.style.top || terminalWindow.offsetTop + 'px',
+                    width: terminalWindow.style.width || terminalWindow.offsetWidth + 'px',
+                    height: terminalWindow.style.height || terminalWindow.offsetHeight + 'px',
+                    display: terminalWindow.style.display || '',
+                    locked: terminalWindow.dataset.locked === 'true'
+                },
+                params: paramManager.instances.map(inst => ({
+                    left: inst.win.style.left || inst.win.offsetLeft + 'px',
+                    top: inst.win.style.top || inst.win.offsetTop + 'px',
+                    width: inst.win.style.width || inst.win.offsetWidth + 'px',
+                    height: inst.win.style.height || inst.win.offsetHeight + 'px',
+                    locked: inst.win.dataset.locked === 'true',
+                    title: inst.title,
+                    globalCmd: inst.globalCmd,
+                    sendOnRelease: inst.sendOnRelease,
+                    configs: inst.configs.map(c => ({ id: c.id, name: c.name, min: c.min, max: c.max, step: c.step, val: c.val }))
+                })),
+                buttons: buttonManager.instances.map(inst => ({
+                    left: inst.win.style.left || inst.win.offsetLeft + 'px',
+                    top: inst.win.style.top || inst.win.offsetTop + 'px',
+                    width: inst.win.style.width || inst.win.offsetWidth + 'px',
+                    height: inst.win.style.height || inst.win.offsetHeight + 'px',
+                    fontSize: inst.btnEl.style.fontSize,
+                    locked: inst.win.dataset.locked === 'true',
+                    title: inst.title,
+                    btnText: inst.btnText,
+                    cmd: inst.cmd,
+                    disableOnClick: inst.disableOnClick,
+                    reenableCondition: inst.reenableCondition,
+                    delayMs: inst.delayMs,
+                    receiveCmd: inst.receiveCmd
+                })),
+                scope: scopeManager.instance ? {
+                    left: scopeManager.instance.win.style.left || scopeManager.instance.win.offsetLeft + 'px',
+                    top: scopeManager.instance.win.style.top || scopeManager.instance.win.offsetTop + 'px',
+                    width: scopeManager.instance.win.style.width || scopeManager.instance.win.offsetWidth + 'px',
+                    height: scopeManager.instance.win.style.height || scopeManager.instance.win.offsetHeight + 'px',
+                    locked: scopeManager.instance.win.dataset.locked === 'true',
+                    samplePoints: scopeManager.instance.samplePoints,
+                    samplesPerPixel: scopeManager.instance.samplesPerPixel,
+                    timeScaleMsPerSample: scopeManager.instance.timeScaleMsPerSample,
+                    timeWindowMs: scopeManager.instance.timeWindowMs,
+                    showSampleMarkers: scopeManager.instance.showSampleMarkers,
+                    viewTimeOffsetMs: scopeManager.instance.viewTimeOffsetMs,
+                    yScale: scopeManager.instance.yScale,
+                    yOffsetUnits: scopeManager.instance.yOffsetUnits,
+                    viewOffset: scopeManager.instance.viewOffset,
+                    samples: scopeManager.instance.samples,
+                    sampleTimes: scopeManager.instance.sampleTimes
+                } : null
+            };
+            return layout;
+        }
+
+        function saveLayoutToLocal() {
+            try {
+                const data = getLayoutData();
+                localStorage.setItem('wsa_layout_v1', JSON.stringify(data));
+            } catch (e) {
+                appendLog('保存布局失败: ' + e, 'error');
+            }
+        }
+
+        function clearExistingDynamic() {
+            // remove param windows
+            paramManager.instances.forEach(inst => {
+                if (inst.win && inst.win.parentNode) inst.win.parentNode.removeChild(inst.win);
+            });
+            paramManager.instances = [];
+            // remove button windows
+            buttonManager.instances.forEach(inst => {
+                if (inst._timer) clearInterval(inst._timer);
+                if (inst.win && inst.win.parentNode) inst.win.parentNode.removeChild(inst.win);
+            });
+            buttonManager.instances = [];
+            if (scopeManager.instance) {
+                if (scopeManager.instance._resizeObserver) scopeManager.instance._resizeObserver.disconnect();
+                if (scopeManager.instance._saveTimer) clearTimeout(scopeManager.instance._saveTimer);
+                if (scopeManager.instance.win && scopeManager.instance.win.parentNode) {
+                    scopeManager.instance.win.parentNode.removeChild(scopeManager.instance.win);
+                }
+                scopeManager.instance = null;
+            }
+            updateScopeButtonState(false);
+            scopeSerialBuffer = '';
+        }
+
+        function resetTerminalToDefault() {
+            terminalWindow.style.display = 'flex';
+            terminalWindow.style.left = '50px';
+            terminalWindow.style.top = '40px';
+            terminalWindow.style.width = '600px';
+            terminalWindow.style.height = '450px';
+            terminalWindow.style.resize = 'both';
+            terminalWindow.style.overflow = 'hidden';
+            terminalWindow.style.border = '1px solid var(--border-color)';
+            terminalWindow.dataset.locked = 'false';
+            delete terminalWindow.dataset.resizing;
+            const header = terminalWindow.querySelector('.window-header');
+            if (header) header.style.cursor = 'grab';
+
+            const addTerminalBtn = document.getElementById('addTerminalBtn');
+            addTerminalBtn.classList.add('disabled');
+            addTerminalBtn.querySelector('.status').textContent = '已添加';
+            addTerminalBtn.querySelector('.status').style.color = 'var(--success-color)';
+        }
+
+        function loadLayoutFromObject(obj) {
+            try {
+                clearExistingDynamic();
+                
+                // restore terminal
+                if (obj.terminal) {
+                    if (obj.terminal.left) terminalWindow.style.left = obj.terminal.left;
+                    if (obj.terminal.top) terminalWindow.style.top = obj.terminal.top;
+                    if (obj.terminal.width) terminalWindow.style.width = obj.terminal.width;
+                    if (obj.terminal.height) terminalWindow.style.height = obj.terminal.height;
+                    terminalWindow.dataset.locked = obj.terminal.locked ? 'true' : 'false';
+                    terminalWindow.style.resize = terminalWindow.dataset.locked === 'true' ? 'none' : 'both';
+                    const terminalHeader = terminalWindow.querySelector('.window-header');
+                    if (terminalHeader) terminalHeader.style.cursor = terminalWindow.dataset.locked === 'true' ? 'default' : 'grab';
+                    
+                    if (obj.terminal.display === 'none') {
+                        terminalWindow.style.display = 'none';
+                        const addTerminalBtn = document.getElementById('addTerminalBtn');
+                        addTerminalBtn.classList.remove('disabled');
+                        addTerminalBtn.querySelector('.status').textContent = '未添加';
+                        addTerminalBtn.querySelector('.status').style.color = 'var(--text-muted)';
+                    } else {
+                        terminalWindow.style.display = 'flex';
+                        const addTerminalBtn = document.getElementById('addTerminalBtn');
+                        addTerminalBtn.classList.add('disabled');
+                        addTerminalBtn.querySelector('.status').textContent = '已添加';
+                        addTerminalBtn.querySelector('.status').style.color = 'var(--success-color)';
+                    }
+                }
+
+                // restore scope
+                if (obj.scope) {
+                    const scopeInst = createScopeWindow({
+                        left: obj.scope.left,
+                        top: obj.scope.top,
+                        width: obj.scope.width,
+                        height: obj.scope.height,
+                        locked: obj.scope.locked,
+                        samplePoints: obj.scope.samplePoints,
+                        samplesPerPixel: obj.scope.samplesPerPixel,
+                        timeScaleMsPerSample: obj.scope.timeScaleMsPerSample,
+                        timeWindowMs: obj.scope.timeWindowMs,
+                        showSampleMarkers: obj.scope.showSampleMarkers,
+                        viewTimeOffsetMs: obj.scope.viewTimeOffsetMs,
+                        yScale: obj.scope.yScale,
+                        yOffsetUnits: obj.scope.yOffsetUnits,
+                        viewOffset: obj.scope.viewOffset,
+                        samples: obj.scope.samples,
+                        sampleTimes: obj.scope.sampleTimes
+                    });
+                    if (scopeInst) {
+                        scopeInst.samplePoints = Math.max(100, Math.min(5000, parseInt(obj.scope.samplePoints, 10) || scopeInst.samplePoints));
+                        scopeInst.samples = Array.isArray(obj.scope.samples) ? obj.scope.samples.slice(-scopeInst.samplePoints) : [];
+                        scopeInst.sampleTimes = Array.isArray(obj.scope.sampleTimes) ? obj.scope.sampleTimes.slice(-scopeInst.samplePoints) : [];
+                        // if no sample times provided, synthesize uniformly spaced timestamps based on timeWindowMs or timeScaleMsPerSample
+                        if (!scopeInst.sampleTimes || scopeInst.sampleTimes.length < scopeInst.samples.length) {
+                            const times = [];
+                            const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+                            let step = Math.max(1, Number(scopeInst.timeScaleMsPerSample) || 1);
+                            if (Number.isFinite(scopeInst.timeWindowMs) && scopeInst.samples.length > 1) {
+                                step = Math.max(1, Math.round(scopeInst.timeWindowMs / Math.max(1, scopeInst.samples.length - 1)));
+                            }
+                            for (let i = scopeInst.samples.length - 1; i >= 0; i--) {
+                                times[i] = now - (scopeInst.samples.length - 1 - i) * step;
+                            }
+                            scopeInst.sampleTimes = times;
+                        }
+                        scopeInst.samplesPerPixel = typeof obj.scope.samplesPerPixel === 'number' ? obj.scope.samplesPerPixel : scopeInst.samplesPerPixel;
+                        scopeInst.timeScaleMsPerSample = typeof obj.scope.timeScaleMsPerSample === 'number' ? obj.scope.timeScaleMsPerSample : scopeInst.timeScaleMsPerSample;
+                        scopeInst.timeWindowMs = typeof obj.scope.timeWindowMs === 'number' ? obj.scope.timeWindowMs : scopeInst.timeWindowMs;
+                        scopeInst.showSampleMarkers = typeof obj.scope.showSampleMarkers === 'boolean' ? obj.scope.showSampleMarkers : scopeInst.showSampleMarkers;
+                        scopeInst.viewTimeOffsetMs = typeof obj.scope.viewTimeOffsetMs === 'number' ? obj.scope.viewTimeOffsetMs : scopeInst.viewTimeOffsetMs;
+                        scopeInst.yScale = typeof obj.scope.yScale === 'number' ? obj.scope.yScale : scopeInst.yScale;
+                        scopeInst.yOffsetUnits = typeof obj.scope.yOffsetUnits === 'number' ? obj.scope.yOffsetUnits : scopeInst.yOffsetUnits;
+                        scopeInst.viewOffset = typeof obj.scope.viewOffset === 'number' ? obj.scope.viewOffset : scopeInst.viewOffset;
+                        renderScopeUI(scopeInst);
+                    }
+                } else {
+                    updateScopeButtonState(false);
+                }
+
+                // restore params
+                if (Array.isArray(obj.params)) {
+                    obj.params.forEach(s => {
+                        const winId = 'param_win_' + Date.now() + Math.floor(Math.random()*1000);
+                        const win = document.createElement('div');
+                        win.className = 'floating-window';
+                        win.id = winId;
+                        win.style.left = s.left || '100px';
+                        win.style.top = s.top || '100px';
+                        if (s.width) win.style.width = s.width;
+                        if (s.height) win.style.height = s.height;
+                        win.dataset.locked = s.locked ? 'true' : 'false';
+                        win.style.resize = win.dataset.locked === 'true' ? 'none' : 'both';
+                        const header = win.querySelector('.window-header');
+                        if (header) header.style.cursor = win.dataset.locked === 'true' ? 'default' : 'grab';
+                        win.innerHTML = `
+                            <div class="window-header">
+                                <span class="window-title">${s.title || '参数调试'}</span>
+                            </div>
+                            <div class="param-list"></div>
+                        `;
+                        workspaceEl.appendChild(win);
+                        initDraggable(win.querySelector('.window-header'), win);
+                        initContextMenu(win);
+                        const paramListEl = win.querySelector('.param-list');
+                        const newInst = {
+                            win: win,
+                            listContainer: paramListEl,
+                            title: s.title || '参数调试',
+                            globalCmd: s.globalCmd || 'PID {V1}',
+                            sendOnRelease: s.sendOnRelease !== undefined ? s.sendOnRelease : true,
+                            configs: Array.isArray(s.configs) ? s.configs.map(c => ({ id: c.id || Date.now()+Math.floor(Math.random()*1000), name: c.name || '参数', min: c.min || 0, max: c.max || 100, step: c.step || 1, val: c.val || 0 })) : []
+                        };
+                        paramManager.instances.push(newInst);
+                        renderParamUI(newInst);
+                    });
+                }
+
+                // restore buttons
+                if (Array.isArray(obj.buttons)) {
+                    obj.buttons.forEach(s => {
+                        const winId = 'btn_win_' + Date.now() + Math.floor(Math.random()*1000);
+                        const win = document.createElement('div');
+                        win.className = 'floating-window';
+                        win.id = winId;
+                        win.style.left = s.left || '150px';
+                        win.style.top = s.top || '150px';
+                        if (s.width) win.style.width = s.width;
+                        if (s.height) win.style.height = s.height;
+                        win.style.minWidth = '40px';
+                        win.style.minHeight = '30px';
+                        win.dataset.locked = s.locked ? 'true' : 'false';
+                        win.style.resize = win.dataset.locked === 'true' ? 'none' : 'both';
+                        win.style.background = 'transparent';
+                        win.style.border = 'none';
+                        win.style.boxShadow = 'none';
+                        win.style.overflow = 'visible';
+                        win.innerHTML = `<button class="custom-cmd-btn" style="width:100%; height:100%; font-size:1rem; box-shadow:0 4px 6px rgba(0,0,0,0.1); margin:0; padding:0; display:block; outline:none; border-radius:6px; cursor:pointer;" title="操作提示\n右键调整位置/大小/设置"></button>`;
+                        workspaceEl.appendChild(win);
+                        initContextMenu(win);
+                        const btnEl = win.querySelector('.custom-cmd-btn');
+                        if (s.fontSize) {
+                            btnEl.style.fontSize = s.fontSize;
+                        }
+                        const newInst = {
+                            win: win,
+                            btnEl: btnEl,
+                            title: s.title || '自定义按钮',
+                            btnText: s.btnText || '点击发送',
+                            cmd: s.cmd || '',
+                            disableOnClick: !!s.disableOnClick,
+                            reenableCondition: s.reenableCondition || 'none',
+                            delayMs: parseInt(s.delayMs,10) || 1000,
+                            receiveCmd: s.receiveCmd || '',
+                            _timer: null
+                        };
+                        buttonManager.instances.push(newInst);
+                        renderButtonUI(newInst);
+                    });
+                }
+            } catch (e) {
+                appendLog('加载布局失败: ' + e, 'error');
+            }
+        }
+
+        function loadLayoutFromLocal() {
+            try {
+                const raw = localStorage.getItem('wsa_layout_v1');
+                if (!raw) return false;
+                const obj = JSON.parse(raw);
+                loadLayoutFromObject(obj);
+                return true;
+            } catch (e) {
+                appendLog('从本地加载布局失败: ' + e, 'error');
+                return false;
+            }
+        }
+
+        function exportLayout() {
+            const data = getLayoutData();
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'wsa_layout.json';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        }
+
+        document.getElementById('btnExportLayout').addEventListener('click', () => {
+            exportLayout();
+        });
+
+        document.getElementById('btnImportLayout').addEventListener('click', () => {
+            document.getElementById('importLayoutFile').click();
+        });
+
+        document.getElementById('importLayoutFile').addEventListener('change', (e) => {
+            const file = e.target.files && e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const obj = JSON.parse(ev.target.result);
+                    loadLayoutFromObject(obj);
+                    // save to local automatically
+                    localStorage.setItem('wsa_layout_v1', JSON.stringify(obj));
+                } catch (err) {
+                    appendLog('导入布局文件失败: ' + err, 'error');
+                }
+            };
+            reader.readAsText(file);
+            e.target.value = '';
+        });
+
+        document.getElementById('btnClearLayout').addEventListener('click', () => {
+            if (confirm('清除所有布局（会移除所有动态添加的参数窗口与按钮），确定吗？')) {
+                resetTerminalToDefault();
+                clearExistingDynamic();
+                // 先清理，再保存“仅终端默认布局”，确保刷新后结果稳定
+                localStorage.removeItem('wsa_layout_v1');
+                saveLayoutToLocal();
+                contextMenu.style.display = 'none';
+            }
+        });
+
+        // Settings Modal Handlers for Button
+        const btnDisableOnClickChk = document.getElementById('btnDisableOnClick');
+        const btnReenableContainer = document.getElementById('btnReenableContainer');
+        const btnReenableCond = document.getElementById('btnReenableCond');
+        const btnDelayContainer = document.getElementById('btnDelayContainer');
+        const btnRecvContainer = document.getElementById('btnRecvContainer');
+
+        btnDisableOnClickChk.addEventListener('change', (e) => {
+            btnReenableContainer.style.display = e.target.checked ? 'flex' : 'none';
+        });
+
+        btnReenableCond.addEventListener('change', (e) => {
+            btnDelayContainer.style.display = e.target.value === 'delay' ? 'flex' : 'none';
+            btnRecvContainer.style.display = e.target.value === 'receive' ? 'flex' : 'none';
+        });
+
+        function renderButtonSettingsModal() {
+            if (!currentEditingBtnInst) return;
+            document.getElementById('btnDisplayTxt').value = currentEditingBtnInst.btnText;
+            document.getElementById('btnCmdTxt').value = currentEditingBtnInst.cmd;
+            
+            document.getElementById('btnWidth').value = parseInt(currentEditingBtnInst.win.style.width) || currentEditingBtnInst.win.offsetWidth || 120;
+            document.getElementById('btnHeight').value = parseInt(currentEditingBtnInst.win.style.height) || currentEditingBtnInst.win.offsetHeight || 44;
+            document.getElementById('btnPosX').value = parseInt(currentEditingBtnInst.win.style.left) || currentEditingBtnInst.win.offsetLeft || 150;
+            document.getElementById('btnPosY').value = parseInt(currentEditingBtnInst.win.style.top) || currentEditingBtnInst.win.offsetTop || 150;
+            document.getElementById('btnFontSize').value = currentEditingBtnInst.btnEl.style.fontSize || '1rem';
+            
+            btnDisableOnClickChk.checked = currentEditingBtnInst.disableOnClick;
+            btnReenableCond.value = currentEditingBtnInst.reenableCondition;
+            document.getElementById('btnDelayMs').value = currentEditingBtnInst.delayMs;
+            document.getElementById('btnReceiveCmd').value = currentEditingBtnInst.receiveCmd;
+
+            // Trigger events to update UI
+            btnDisableOnClickChk.dispatchEvent(new Event('change'));
+            btnReenableCond.dispatchEvent(new Event('change'));
+        }
+
+        document.getElementById('btnSaveButtonSettings').addEventListener('click', () => {
+            if (!currentEditingBtnInst) return;
+            
+            currentEditingBtnInst.btnText = document.getElementById('btnDisplayTxt').value || "点击发送";
+            currentEditingBtnInst.cmd = document.getElementById('btnCmdTxt').value || "";
+            currentEditingBtnInst.disableOnClick = btnDisableOnClickChk.checked;
+            currentEditingBtnInst.reenableCondition = btnReenableCond.value;
+              currentEditingBtnInst.delayMs = parseInt(document.getElementById('btnDelayMs').value, 10) || 1000;
+            currentEditingBtnInst.receiveCmd = document.getElementById('btnReceiveCmd').value || "";
+            
+            // apply positional / size changes
+            const btnWidth = document.getElementById('btnWidth').value;
+            const btnHeight = document.getElementById('btnHeight').value;
+            const btnPosX = document.getElementById('btnPosX').value;
+            const btnPosY = document.getElementById('btnPosY').value;
+            const btnFontSize = document.getElementById('btnFontSize').value;
+            
+            if (btnWidth !== '') currentEditingBtnInst.win.style.width = btnWidth + 'px';
+            if (btnHeight !== '') currentEditingBtnInst.win.style.height = btnHeight + 'px';
+            if (btnPosX !== '') currentEditingBtnInst.win.style.left = btnPosX + 'px';
+            if (btnPosY !== '') currentEditingBtnInst.win.style.top = btnPosY + 'px';
+            if (btnFontSize) {
+                // handle missing units
+                currentEditingBtnInst.btnEl.style.fontSize = isNaN(btnFontSize) && isNaN(parseFloat(btnFontSize)) ? '1rem' : (btnFontSize.includes('px') || btnFontSize.includes('rem') || btnFontSize.includes('em') ? btnFontSize : btnFontSize + 'px');
+            }
+            
+            closeButtonModal();
+            renderButtonUI(currentEditingBtnInst);
+            saveLayoutToLocal();
+        });
+
+        function renderScopeSettingsModal() {
+            if (!currentEditingScopeInst) return;
+            const posX = String(parseInt(currentEditingScopeInst.win.style.left, 10) || currentEditingScopeInst.win.offsetLeft || 120);
+            const posY = String(parseInt(currentEditingScopeInst.win.style.top, 10) || currentEditingScopeInst.win.offsetTop || 120);
+            const width = String(parseInt(currentEditingScopeInst.win.style.width, 10) || currentEditingScopeInst.win.offsetWidth || 780);
+            const height = String(parseInt(currentEditingScopeInst.win.style.height, 10) || currentEditingScopeInst.win.offsetHeight || 380);
+
+            document.getElementById('scopePosX').value = posX;
+            document.getElementById('scopePosY').value = posY;
+            document.getElementById('scopeWidth').value = width;
+            document.getElementById('scopeHeight').value = height;
+            document.getElementById('scopeSamplePoints').value = currentEditingScopeInst.samplePoints || 1000;
+            document.getElementById('scopeShowSampleMarkers').checked = currentEditingScopeInst.showSampleMarkers !== false;
+
+            // cache original geometry values; save step will only apply changed geometry fields
+            scopeSettingsModal.dataset.scopeOrigPosX = posX;
+            scopeSettingsModal.dataset.scopeOrigPosY = posY;
+            scopeSettingsModal.dataset.scopeOrigWidth = width;
+            scopeSettingsModal.dataset.scopeOrigHeight = height;
+        }
+
+        btnSaveScopeSettings.addEventListener('click', () => {
+            if (!currentEditingScopeInst) return;
+
+            const scopePosX = document.getElementById('scopePosX').value;
+            const scopePosY = document.getElementById('scopePosY').value;
+            const scopeWidth = document.getElementById('scopeWidth').value;
+            const scopeHeight = document.getElementById('scopeHeight').value;
+            const scopeSamplePoints = Math.max(100, Math.min(5000, parseInt(document.getElementById('scopeSamplePoints').value, 10) || 1000));
+            const scopeShowSampleMarkers = !!document.getElementById('scopeShowSampleMarkers').checked;
+
+            const origPosX = scopeSettingsModal.dataset.scopeOrigPosX || '';
+            const origPosY = scopeSettingsModal.dataset.scopeOrigPosY || '';
+            const origWidth = scopeSettingsModal.dataset.scopeOrigWidth || '';
+            const origHeight = scopeSettingsModal.dataset.scopeOrigHeight || '';
+
+            const posXChanged = scopePosX !== '' && scopePosX !== origPosX;
+            const posYChanged = scopePosY !== '' && scopePosY !== origPosY;
+            const widthChanged = scopeWidth !== '' && scopeWidth !== origWidth;
+            const heightChanged = scopeHeight !== '' && scopeHeight !== origHeight;
+
+            if (posXChanged) currentEditingScopeInst.win.style.left = scopePosX + 'px';
+            if (posYChanged) currentEditingScopeInst.win.style.top = scopePosY + 'px';
+            if (widthChanged) currentEditingScopeInst.win.style.width = scopeWidth + 'px';
+            if (heightChanged) currentEditingScopeInst.win.style.height = scopeHeight + 'px';
+
+            currentEditingScopeInst.samplePoints = scopeSamplePoints;
+            currentEditingScopeInst.showSampleMarkers = scopeShowSampleMarkers;
+            if (currentEditingScopeInst.samples.length > scopeSamplePoints) {
+                currentEditingScopeInst.samples = currentEditingScopeInst.samples.slice(-scopeSamplePoints);
+                if (Array.isArray(currentEditingScopeInst.sampleTimes)) {
+                    currentEditingScopeInst.sampleTimes = currentEditingScopeInst.sampleTimes.slice(-scopeSamplePoints);
+                }
+            }
+            currentEditingScopeInst.viewOffset = Math.max(0, Math.min(currentEditingScopeInst.viewOffset || 0, Math.max(0, currentEditingScopeInst.samples.length - 1)));
+
+            closeScopeModal();
+            renderScopeUI(currentEditingScopeInst);
+            saveLayoutToLocal();
+        });
+
+        // --- WebSocket Logic ---
+        function updateStatus(connected) {
+            if (connected) {
+                statusBadge.classList.add('connected');
+                statusText.textContent = '已连接';
+                btnConnect.style.display = 'none';
+                btnDisconnect.style.display = 'inline-flex';
+                wsUrlInput.disabled = true;
+                
+                sendDataInput.disabled = false;
+                btnSend.disabled = false;
+            } else {
+                statusBadge.classList.remove('connected');
+                statusText.textContent = '未连接';
+                btnConnect.style.display = 'inline-flex';
+                btnDisconnect.style.display = 'none';
+                wsUrlInput.disabled = false;
+
+                sendDataInput.disabled = true;
+                btnSend.disabled = true;
+            }
+        }
+
+        function buf2hex(buffer) {
+            return Array.prototype.map.call(new Uint8Array(buffer), x => ('00' + x.toString(16)).slice(-2).toUpperCase()).join(' ');
+        }
+        
+        function str2hex(str) {
+            let hex = '';
+            for(let i=0; i<str.length; i++) {
+                hex += ('00' + str.charCodeAt(i).toString(16)).slice(-2).toUpperCase() + ' ';
+            }
+            return hex.trim();
+        }
+
+        function appendLog(message, type = 'info', isRawBuffer = false) {
+            const time = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            
+            let displayMsg = message;
+            
+            if (displayModeHex) {
+                if (isRawBuffer) {
+                    displayMsg = buf2hex(message);
+                } else if (typeof message === 'string') {
+                    displayMsg = str2hex(message);
+                }
+            } else {
+                if (isRawBuffer) {
+                    // 如果是非 hex 模式但传入的是 buffer，进行简单的文本解码
+                    displayMsg = new TextDecoder().decode(message);
+                }
+            }
+
+            let color = '#10b981'; // 默认接收数据使用绿色
+            if(type === 'error') color = '#ef4444';
+            else if(type === 'send') color = '#60a5fa'; // 发送的数据依然保持蓝色
+            else if(type === 'system') color = '#fbbf24';
+
+            logEntry.style.color = color;
+            logEntry.innerText = `[${time}] ${displayMsg}`; // 使用 innerText 防止 XSS，也可避免错误解析 HTML
+            
+            // 为时间加上单独的颜色
+            const timeSpan = document.createElement('span');
+            timeSpan.style.color = '#6b7280';
+            timeSpan.innerText = `[${time}] `;
+            logEntry.innerText = displayMsg;
+            logEntry.prepend(timeSpan);
+            
+            terminal.appendChild(logEntry);
+
+            // 限制保留信息的条数
+            while (terminal.children.length > maxTerminalLines) {
+                terminal.removeChild(terminal.firstChild);
+            }
+
+            // 批量时使用 requestAnimationFrame 来避免同步回流抖动
+            if (autoScrollCheckbox.checked) {
+                if (!window.scrollPending) {
+                    window.scrollPending = true;
+                    requestAnimationFrame(() => {
+                        terminal.scrollTop = terminal.scrollHeight;
+                        window.scrollPending = false;
+                    });
+                }
+            }
+        }
+
+        btnConnect.addEventListener('click', () => {
+            const url = wsUrlInput.value.trim();
+            if (!url) {
+                alert('请输入WebSocket地址');
+                return;
+            }
+
+            appendLog(`正在连接到 ${url}...`, 'system');
+            
+            try {
+                ws = new WebSocket(url);
+            } catch (error) {
+                appendLog(`连接创建失败: ${error}`, 'error');
+                return;
+            }
+
+            ws.onopen = () => {
+                appendLog('连接成功！', 'system');
+                updateStatus(true);
+            };
+
+            ws.onmessage = async (event) => {
+                let data = event.data;
+                let strData = "";
+
+                if (data instanceof Blob) {
+                    const arrayBuffer = await data.arrayBuffer();
+                    appendLog(arrayBuffer, 'info', true);
+                    strData = await data.text();
+                } else {
+                    appendLog(data);
+                    strData = String(data);
+                }
+
+                handleScopeSerialText(strData);
+
+                // Check disabled buttons relying on receive condition
+                buttonManager.instances.forEach(inst => {
+                    if (inst.disableOnClick && inst.reenableCondition === 'receive' && inst.btnEl.disabled) {
+                        if (inst.receiveCmd && strData.includes(inst.receiveCmd)) {
+                            inst.btnEl.disabled = false;
+                            inst.btnEl.textContent = inst.btnText;
+                            inst.win.dataset.disabled = "false";
+                        }
+                    }
+                });
+            };
+
+            ws.onclose = () => {
+                appendLog('连接已断开', 'system');
+                updateStatus(false);
+                ws = null;
+            };
+
+            ws.onerror = (error) => {
+                appendLog('WebSocket 发生错误，请检查设备。', 'error');
+            };
+        });
+
+        btnDisconnect.addEventListener('click', () => {
+            if (ws) {
+                ws.close();
+            }
+        });
+
+        btnClear.addEventListener('click', () => {
+            terminal.innerHTML = '';
+        });
+
+        function sendMsg() {
+            if (!ws || ws.readyState !== WebSocket.OPEN) return;
+            const text = sendDataInput.value;
+            if (text) {
+                ws.send(text);
+                appendLog(`${text}`, 'send');
+                sendDataInput.value = '';
+            }
+        }
+
+        btnSend.addEventListener('click', sendMsg);
+        sendDataInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMsg();
+            }
+        });
+        
+        sendDataInput.addEventListener('input', () => {
+            btnClearInput.style.display = sendDataInput.value.length > 0 ? 'flex' : 'none';
+        });
+
+        btnClearInput.addEventListener('click', () => {
+            sendDataInput.value = '';
+            btnClearInput.style.display = 'none';
+            sendDataInput.focus();
+        });
+
+        // 页面按载入完毕后自动触发连接
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                const url = wsUrlInput.value.trim();
+                // 只有填写了地址才自动连接
+                if (url) {
+                    btnConnect.click();
+                }
+            }, 500);
+            // 尝试从本地恢复布局（优先于自动连接之后）
+            try {
+                loadLayoutFromLocal();
+            } catch (e) {
+                // ignore
+            }
+        });
+
+    </script>
+</body>
+</html>
